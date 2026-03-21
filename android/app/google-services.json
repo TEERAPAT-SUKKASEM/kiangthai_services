@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "204596669709",
+    "project_id": "kiangthai-services",
+    "storage_bucket": "kiangthai-services.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:204596669709:android:0fd6e30dae03ae24915444",
+        "android_client_info": {
+          "package_name": "com.kiangthai.services.kiangthai_services"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFabVjFYgkvpFRMujTKqH8nrC1JKRyxxs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
