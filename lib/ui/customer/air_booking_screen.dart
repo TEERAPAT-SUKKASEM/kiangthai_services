@@ -1,5 +1,7 @@
+import 'dart:typed_data'; // เพิ่มตัวนี้สำหรับจัดการไฟล์บนเว็บ
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart'; // แพ็กเกจกล้องที่เราเพิ่งลงไป
 import '../widgets/shared_booking_fields.dart';
 
 class AirBookingScreen extends StatefulWidget {
@@ -10,26 +12,44 @@ class AirBookingScreen extends StatefulWidget {
 }
 
 class _AirBookingScreenState extends State<AirBookingScreen> {
-  // 1. ตัวแปรสำหรับฟอร์มจองแอร์ (เฉพาะของแอร์)
   String _selectedService = 'ล้างแอร์';
   final _btuController = TextEditingController();
   final _countController = TextEditingController(text: '1');
 
-  // 2. ตัวแปรสำหรับชิ้นส่วนส่วนกลาง (เวลา, สถานที่, รูปภาพ)
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   final _addressController = TextEditingController();
   final _noteController = TextEditingController();
   bool _hasImage = false;
 
+  // ตัวแปรสำหรับเก็บไฟล์รูปภาพ
+  XFile? _pickedImage;
+  Uint8List? _imageBytes; // จำเป็นสำหรับการอัปโหลดบนเว็บ
+
   @override
   void dispose() {
-    // ควรล้างข้อมูลใน Controller เมื่อออกจากหน้าจอเพื่อป้องกัน Memory Leak
     _btuController.dispose();
     _countController.dispose();
     _addressController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  // ฟังก์ชันสำหรับเปิดแกลลอรี่/กล้อง
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    // เลือกรูปจากแกลลอรี่
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      // อ่านไฟล์เป็น Byte เพื่อให้รองรับการทำงานบน Web
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _pickedImage = image;
+        _imageBytes = bytes;
+        _hasImage = true; // เปลี่ยนสถานะปุ่มให้เป็นสีเขียว
+      });
+    }
   }
 
   @override
@@ -79,7 +99,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           ),
           const SizedBox(height: 20),
 
-          // --- เรียกใช้งาน SharedBookingFields (ส่งค่าให้ครบถ้วน) ---
           SharedBookingFields(
             selectedDate: _selectedDate,
             selectedTime: _selectedTime,
@@ -106,16 +125,11 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 setState(() => _selectedTime = picked);
               }
             },
-            onImageTap: () {
-              // ตอนนี้ทำปุ่มให้กดสลับสถานะได้ก่อน เดี๋ยวเรามาใส่โค้ดกล้องทีหลัง
-              setState(() => _hasImage = !_hasImage);
-            },
+            onImageTap: _pickImage, // เรียกใช้ฟังก์ชันเลือกรูปที่เราสร้างไว้!
           ),
 
-          // --------------------------------------------------------
           const SizedBox(height: 30),
 
-          // ปุ่มยืนยัน
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
@@ -123,7 +137,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              // 1. ป้องกันคนลืมกรอกข้อมูล
               if (_selectedDate == null ||
                   _selectedTime == null ||
                   _addressController.text.isEmpty) {
@@ -139,27 +152,55 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 return;
               }
 
-              // 2. ขอตรวจสอบก่อนว่าใครเป็นคนกดจอง (ดึง ID ของลูกค้าที่ล็อกอินอยู่)
               final user = Supabase.instance.client.auth.currentUser;
-              if (user == null) return; // ถ้าไม่ได้ล็อกอินให้หยุดการทำงาน
+              if (user == null) return;
 
               try {
-                // ขึ้นข้อความบอกผู้ใช้ให้รอแป๊บ
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('กำลังส่งข้อมูลการจอง...')),
+                  const SnackBar(
+                    content: Text(
+                      'กำลังส่งข้อมูลและอัปโหลดรูปภาพ... (อาจใช้เวลาสักครู่)',
+                    ),
+                  ),
                 );
 
-                // 3. แปลงร่าง วันที่ และ เวลา ให้อยู่ในฟอร์แมตที่ Database เข้าใจ (YYYY-MM-DD และ HH:MM:00)
+                String? imageUrl; // ตัวแปรเก็บลิงก์รูป
+
+                // ถ้ามีการแนบรูปภาพ ให้เอาไปอัปโหลดขึ้น Storage ก่อน!
+                if (_pickedImage != null && _imageBytes != null) {
+                  // สร้างชื่อไฟล์ไม่ให้ซ้ำกัน โดยใช้วันที่และเวลา
+                  final fileExt = _pickedImage!.name.split('.').last.isEmpty
+                      ? 'png'
+                      : _pickedImage!.name.split('.').last;
+                  final fileName =
+                      '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+                  final filePath =
+                      '${user.id}/$fileName'; // เก็บในโฟลเดอร์ชื่อ ID ลูกค้า
+
+                  // โยนรูปขึ้น Storage
+                  await Supabase.instance.client.storage
+                      .from('booking_images')
+                      .uploadBinary(
+                        filePath,
+                        _imageBytes!,
+                        fileOptions: FileOptions(contentType: 'image/$fileExt'),
+                      );
+
+                  // ขอลิงก์รูป (Public URL) กลับมาเพื่อเอาไปเก็บในตาราง Bookings
+                  imageUrl = Supabase.instance.client.storage
+                      .from('booking_images')
+                      .getPublicUrl(filePath);
+                }
+
                 final dateStr =
                     '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
                 final timeStr =
                     '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
 
-                // 4. ยิงข้อมูลขึ้นฟ้า! (ส่งเข้าตาราง bookings)
+                // ยิงข้อมูลขึ้นตาราง bookings
                 await Supabase.instance.client.from('bookings').insert({
                   'customer_id': user.id,
                   'service_type': 'แอร์',
-                  // ข้อมูลยิบย่อย เรายัดใส่ JSONB ตามที่ออกแบบ Schema ไว้เป๊ะๆ!
                   'service_details': {
                     'sub_type': _selectedService,
                     'btu': _btuController.text,
@@ -169,26 +210,24 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   },
                   'booking_date': dateStr,
                   'booking_time': timeStr,
-                  'status': 'pending', // สถานะเริ่มต้นคือ "รอการยืนยัน"
+                  'status': 'pending',
+                  'image_url':
+                      imageUrl, // ส่งลิงก์รูปภาพไปเก็บในตารางด้วย! (ถ้าไม่ได้แนบก็จะเป็น null)
                 });
 
-                // 5. ถ้าพ้นบรรทัดบนมาได้ แปลว่าสำเร็จ! เด้งกลับไปหน้าแรกเลย
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'จองคิวสำเร็จ! ระบบบันทึกข้อมูลแล้ว',
+                        'จองคิวสำเร็จ!',
                         style: TextStyle(color: Colors.white),
                       ),
                       backgroundColor: Colors.green,
                     ),
                   );
-                  Navigator.pop(
-                    context,
-                  ); // สั่งปิดหน้าฟอร์มนี้ กลับไปหน้าเลือกบริการ
+                  Navigator.pop(context);
                 }
               } catch (e) {
-                // ถ้าเน็ตหลุด หรือมี Error จะโชว์ตรงนี้ครับ
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
