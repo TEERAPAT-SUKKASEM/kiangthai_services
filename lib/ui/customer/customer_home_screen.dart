@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'air_booking_screen.dart';
 
 class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
@@ -48,8 +49,14 @@ class CustomerHomeScreen extends StatelessWidget {
           final service = services[index];
           return InkWell(
             onTap: () {
-              // TODO: ไปยังหน้าแบบฟอร์มของแต่ละบริการ
-              print('เลือกบริการ: ${service['name']}');
+              if (service['name'] == 'แอร์') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AirBookingScreen(),
+                  ),
+                );
+              }
             },
             child: Card(
               color: service['color'].withOpacity(0.1),
