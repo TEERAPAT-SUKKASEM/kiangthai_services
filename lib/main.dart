@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/customer/customer_home_screen.dart';
+import 'ui/customer/customer_main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +46,7 @@ class KiangThaiApp extends StatelessWidget {
           final session = snapshot.hasData ? snapshot.data!.session : null;
 
           if (session != null) {
-            return const CustomerHomeScreen();
+            return const CustomerMainScreen();
           } else {
             return const LoginScreen();
           }
