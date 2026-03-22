@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'firebase_options.dart';
 import 'ui/auth/login_screen.dart';
+import 'ui/customer/customer_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,10 +45,7 @@ class KiangThaiApp extends StatelessWidget {
           final session = snapshot.hasData ? snapshot.data!.session : null;
 
           if (session != null) {
-            return Scaffold(
-              appBar: AppBar(title: const Text('Kiang Thai Main')),
-              body: const Center(child: Text('ยินดีต้อนรับสู่ระบบจองบริการ!')),
-            );
+            return const CustomerHomeScreen();
           } else {
             return const LoginScreen();
           }
