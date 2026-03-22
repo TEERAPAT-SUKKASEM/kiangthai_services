@@ -13,7 +13,7 @@ class MyBookingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('ประวัติการจองของฉัน')),
       body: user == null
           ? const Center(child: Text('กรุณาล็อกอิน'))
-          // 2. ใช้ StreamBuilder เพื่อให้ข้อมูลอัปเดตแบบ Real-time (ถ้าช่างรับงาน สถานะจะเปลี่ยนทันทีไม่ต้องรีเฟรช!)
+          // 2. ใช้ StreamBuilder เพื่อให้ข้อมูลอัปเดตแบบ Real-time
           : StreamBuilder<List<Map<String, dynamic>>>(
               stream: Supabase.instance.client
                   .from('bookings')
@@ -56,24 +56,87 @@ class MyBookingsScreen extends StatelessWidget {
                     final booking = bookings[index];
                     final details =
                         booking['service_details'] ?? {}; // แกะกล่อง JSON ออกมา
+                    final imageUrl =
+                        booking['image_url']; // ดึง URL รูปภาพออกมา
 
                     return Card(
                       elevation: 2,
                       margin: const EdgeInsets.only(bottom: 15),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.blueAccent,
-                          child: Icon(Icons.build, color: Colors.white),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // แสดงข้อมูลหลักของการจอง
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const CircleAvatar(
+                                backgroundColor: Colors.blueAccent,
+                                child: Icon(Icons.build, color: Colors.white),
+                              ),
+                              title: Text(
+                                'บริการ: ${booking['service_type']} (${details['sub_type'] ?? ''})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'วันที่: ${booking['booking_date']} เวลา: ${booking['booking_time']}\nสถานะ: ${booking['status'] == 'pending' ? 'รอช่างรับงาน' : booking['status']}',
+                              ),
+                              isThreeLine: true,
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+
+                            // ========================================================
+                            // ✅ ✅ ✅ ส่วนแสดงรูปภาพหน้างาน (ถ้ามี) ✅ ✅ ✅
+                            // ========================================================
+                            if (imageUrl != null && imageUrl.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10.0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  child: Image.network(
+                                    imageUrl,
+                                    width: double.infinity,
+                                    height: 200, // กำหนดความสูงรูปภาพ
+                                    fit: BoxFit
+                                        .cover, // ให้รูปภาพเต็มพื้นที่โดยไม่เสียสัดส่วน
+                                    // แสดงตัวโหลดขณะกำลังโหลดรูปภาพ
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Container(
+                                            width: double.infinity,
+                                            height: 200,
+                                            color: Colors.grey[200],
+                                            child: const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                          );
+                                        },
+                                    // แสดงไอคอน Error ถ้าโหลดรูปภาพล้มเหลว
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        width: double.infinity,
+                                        height: 200,
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.error_outline,
+                                            color: Colors.red,
+                                            size: 40,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            // ========================================================
+                          ],
                         ),
-                        title: Text(
-                          'บริการ: ${booking['service_type']} (${details['sub_type'] ?? ''})',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          'วันที่: ${booking['booking_date']} เวลา: ${booking['booking_time']}\nสถานะ: ${booking['status'] == 'pending' ? 'รอช่างรับงาน' : booking['status']}',
-                        ),
-                        isThreeLine: true,
-                        trailing: const Icon(Icons.chevron_right),
                       ),
                     );
                   },
