@@ -12,39 +12,54 @@ class AirBookingScreen extends StatefulWidget {
 }
 
 class _AirBookingScreenState extends State<AirBookingScreen> {
+  // ตัวแปรสำหรับบริการแอร์
+  final List<String> _services = [
+    'ล้างแอร์',
+    'ซ่อมแอร์',
+    'ติดตั้งแอร์',
+    'ย้ายแอร์',
+  ];
   String _selectedService = 'ล้างแอร์';
-  final _btuController = TextEditingController();
-  final _countController = TextEditingController(text: '1');
+
+  // ตัวแปร Dropdown BTU
+  final List<String> _btuOptions = [
+    'ไม่ทราบขนาด / ไม่แน่ใจ',
+    '9,000 BTU',
+    '12,000 BTU',
+    '15,000 BTU',
+    '18,000 BTU',
+    '24,000 BTU',
+    '30,000+ BTU',
+  ];
+  String _selectedBtu = 'ไม่ทราบขนาด / ไม่แน่ใจ';
+
+  final _countController = TextEditingController(text: '1'); // จำนวนเครื่อง
+  final _symptomsController =
+      TextEditingController(); // อาการเสีย (แทน note เดิม)
 
   DateTime? _selectedDate;
-  String? _selectedTime; // เปลี่่ยนมาเก็บเป็น String เช่น '08:30'
+  String? _selectedTime;
   final _addressController = TextEditingController();
-  final _noteController = TextEditingController();
-  bool _hasImage = false;
 
+  bool _hasImage = false;
   XFile? _pickedImage;
   Uint8List? _imageBytes;
 
-  // ตัวแปรใหม่สำหรับจัดการลอจิกปฏิทิน
   List<String> _bookedTimes = [];
   bool _isLoadingTimes = false;
 
   @override
   void dispose() {
-    _btuController.dispose();
     _countController.dispose();
+    _symptomsController.dispose();
     _addressController.dispose();
-    _noteController.dispose();
     super.dispose();
   }
 
-  // ==========================================================
-  // ฟังก์ชันพระเอก: ดึงคิวที่ถูกจองไปแล้วในวันนั้นๆ
-  // ==========================================================
   Future<void> _fetchBookedTimes(DateTime date) async {
     setState(() {
       _selectedDate = date;
-      _selectedTime = null; // รีเซ็ตเวลาที่เลือกไว้เมื่อเปลี่ยนวัน
+      _selectedTime = null;
       _isLoadingTimes = true;
     });
 
@@ -59,23 +74,15 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           .eq('service_type', 'แอร์')
           .neq('status', 'cancelled');
 
-      // ดึงเวลาที่ได้มา (เช่น "08:30:00") มาตัดเหลือแค่ "08:30"
-      final times = response.map<String>((e) {
-        final timeStr = e['booking_time'] as String;
-        return timeStr.substring(0, 5);
-      }).toList();
-
+      final times = response
+          .map<String>((e) => (e['booking_time'] as String).substring(0, 5))
+          .toList();
       setState(() {
         _bookedTimes = times;
         _isLoadingTimes = false;
       });
     } catch (e) {
       setState(() => _isLoadingTimes = false);
-      // โชว์ Error ถ้าดึงไม่ได้
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการดึงคิวว่าง: $e')),
-        );
     }
   }
 
@@ -101,62 +108,172 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
         children: [
           const Text(
             'ประเภทบริการ',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          DropdownButton<String>(
-            value: _selectedService,
-            isExpanded: true,
-            items: <String>['ล้างแอร์', 'ซ่อมแอร์', 'ติดตั้งแอร์', 'ย้ายแอร์']
-                .map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                })
-                .toList(),
-            onChanged: (newValue) =>
-                setState(() => _selectedService = newValue!),
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
 
-          TextField(
-            controller: _btuController,
-            decoration: const InputDecoration(
-              labelText: 'ขนาด BTU (ถ้าทราบ)',
-              border: OutlineInputBorder(),
+          // 1. ปุ่มเลือกบริการแบบ Grid (2x2)
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.5,
             ),
-            keyboardType: TextInputType.number,
+            itemCount: _services.length,
+            itemBuilder: (context, index) {
+              final service = _services[index];
+              final isSelected = _selectedService == service;
+              return ChoiceChip(
+                label: Center(
+                  child: Text(
+                    service,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: isSelected ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected) setState(() => _selectedService = service);
+                },
+                selectedColor: Colors.blueAccent,
+                backgroundColor: Colors.grey.shade100,
+                side: BorderSide(
+                  color: isSelected ? Colors.blueAccent : Colors.grey.shade300,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 20),
 
-          TextField(
-            controller: _countController,
-            decoration: const InputDecoration(
-              labelText: 'จำนวนเครื่อง',
-              border: OutlineInputBorder(),
+          // ==========================================
+          // 2. ส่วน Dynamic: เปลี่ยนตามประเภทบริการ
+          // ==========================================
+
+          // --- ถ้าเลือกล้างแอร์ ---
+          if (_selectedService == 'ล้างแอร์') ...[
+            Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'รายละเอียดแอร์',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'ขนาด BTU',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    value: _selectedBtu,
+                    items: _btuOptions
+                        .map(
+                          (String value) => DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (newValue) =>
+                        setState(() => _selectedBtu = newValue!),
+                  ),
+                  const SizedBox(height: 15),
+                  TextField(
+                    controller: _countController,
+                    decoration: const InputDecoration(
+                      labelText: 'จำนวนเครื่อง',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
             ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 20),
+          ],
 
-          // ส่งตัวแปรและฟังก์ชันใหม่ให้ SharedBookingFields
+          // --- ถ้าเลือกซ่อมแอร์ ---
+          if (_selectedService == 'ซ่อมแอร์') ...[
+            Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'รายละเอียดการซ่อม',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _symptomsController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText:
+                          'ระบุอาการเสีย (เช่น แอร์ไม่เย็น, มีน้ำหยด, เปิดไม่ติด)',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // (ติดตั้งแอร์ และ ย้ายแอร์ จะไม่มีช่องกรอกอะไรเพิ่มตามที่คุณระบุครับ)
+          const SizedBox(height: 15),
+
+          // 3. ปุ่มแนบรูปภาพ (ย้ายขึ้นมาอยู่ในกลุ่มเดียวกับบริการ)
+          OutlinedButton.icon(
+            onPressed: _pickImage,
+            icon: Icon(
+              _hasImage ? Icons.check_circle : Icons.camera_alt,
+              color: _hasImage ? Colors.green : Colors.blue,
+            ),
+            label: Text(
+              _hasImage
+                  ? 'แนบรูปภาพสำเร็จ (กดเพื่อเปลี่ยน)'
+                  : 'ถ่ายรูป / แนบรูปภาพหน้างาน',
+            ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              side: BorderSide(color: _hasImage ? Colors.green : Colors.blue),
+              backgroundColor: _hasImage
+                  ? Colors.green.shade50
+                  : Colors.transparent,
+            ),
+          ),
+
+          // ==========================================
+
+          // 4. เรียกใช้ Shared Widget (เหลือแค่สถานที่และเวลา)
           SharedBookingFields(
             selectedDate: _selectedDate,
             selectedTime: _selectedTime,
             bookedTimes: _bookedTimes,
             isLoadingTimes: _isLoadingTimes,
             addressController: _addressController,
-            noteController: _noteController,
-            hasImage: _hasImage,
-            onDateSelected: (newDate) {
-              _fetchBookedTimes(
-                newDate,
-              ); // กดวันที่ปุ๊บ สั่งยิงข้อมูลถาม Supabase ปั๊บ!
-            },
-            onTimeSelected: (newTime) {
-              setState(() => _selectedTime = newTime);
-            },
-            onImageTap: _pickImage,
+            onDateSelected: (newDate) => _fetchBookedTimes(newDate),
+            onTimeSelected: (newTime) =>
+                setState(() => _selectedTime = newTime),
           ),
 
           const SizedBox(height: 30),
@@ -183,6 +300,21 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 return;
               }
 
+              // บังคับกรอกอาการเสีย ถ้าเลือกซ่อมแอร์
+              if (_selectedService == 'ซ่อมแอร์' &&
+                  _symptomsController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'กรุณาระบุอาการเสียให้ช่างทราบด้วยครับ',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
               final user = Supabase.instance.client.auth.currentUser;
               if (user == null) return;
 
@@ -193,12 +325,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
 
                 final dateStr =
                     '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
-                final timeStr =
-                    '$_selectedTime:00'; // ประกอบร่างเวลาให้ฐานข้อมูลเข้าใจ (เติม :00 เข้าไป)
+                final timeStr = '$_selectedTime:00';
 
-                // ========================================================
-                // ระบบเช็กคิวซ้ำตอนกดปุ่ม (เผื่อคนกดพร้อมกันเสี้ยววินาที) ก็ยังคงเก็บไว้เป็น Guard ปราการด่านสุดท้าย
-                // ========================================================
                 final existingBookings = await Supabase.instance.client
                     .from('bookings')
                     .select('id')
@@ -212,22 +340,18 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'ขออภัยครับ เวลานี้เพิ่งถูกจองไปเมื่อสักครู่ กรุณาเลือกเวลาใหม่',
+                          'ขออภัยครับ เวลานี้เพิ่งถูกจองไปเมื่อสักครู่',
                           style: TextStyle(color: Colors.white),
                         ),
                         backgroundColor: Colors.orange,
                       ),
                     );
-                    _fetchBookedTimes(
-                      _selectedDate!,
-                    ); // รีเฟรชปุ่มเวลาใหม่ทันที
+                    _fetchBookedTimes(_selectedDate!);
                   }
                   return;
                 }
-                // ========================================================
 
                 String? imageUrl;
-
                 if (_pickedImage != null && _imageBytes != null) {
                   final fileExt = _pickedImage!.name.split('.').last.isEmpty
                       ? 'png'
@@ -243,21 +367,27 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                         _imageBytes!,
                         fileOptions: FileOptions(contentType: 'image/$fileExt'),
                       );
-
                   imageUrl = Supabase.instance.client.storage
                       .from('booking_images')
                       .getPublicUrl(filePath);
                 }
 
+                // การแพ็คข้อมูลลง Database แบบฉลาด (แพ็คเฉพาะข้อมูลที่เกี่ยวกับบริการนั้นๆ)
                 await Supabase.instance.client.from('bookings').insert({
                   'customer_id': user.id,
                   'service_type': 'แอร์',
                   'service_details': {
                     'sub_type': _selectedService,
-                    'btu': _btuController.text,
-                    'count': _countController.text,
+                    // ถ้าเลือกล้างแอร์ ค่อยส่งค่า BTU กับ จำนวนเครื่องไป
+                    'btu': _selectedService == 'ล้างแอร์' ? _selectedBtu : null,
+                    'count': _selectedService == 'ล้างแอร์'
+                        ? _countController.text
+                        : null,
+                    // ถ้าเลือกซ่อมแอร์ ค่อยส่งค่า อาการเสียไป
+                    'symptoms': _selectedService == 'ซ่อมแอร์'
+                        ? _symptomsController.text
+                        : null,
                     'address': _addressController.text,
-                    'note': _noteController.text,
                   },
                   'booking_date': dateStr,
                   'booking_time': timeStr,
