@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/customer/customer_home_screen.dart';
 import 'ui/customer/customer_main_screen.dart';
+import 'package:kiangthai_services/ui/technician/technician_main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +47,7 @@ class KiangThaiApp extends StatelessWidget {
           final session = snapshot.hasData ? snapshot.data!.session : null;
 
           if (session != null) {
-            return const CustomerMainScreen();
+            return const TechnicianMainScreen();
           } else {
             return const LoginScreen();
           }
