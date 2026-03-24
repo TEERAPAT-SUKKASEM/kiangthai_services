@@ -170,15 +170,6 @@ class SharedBookingFields extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 15),
-
-        TextField(
-          controller: noteController,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'หมายเหตุถึงช่าง (อาการเสีย, จุดสังเกต)',
-            border: OutlineInputBorder(),
-          ),
-        ),
       ],
     );
   }
