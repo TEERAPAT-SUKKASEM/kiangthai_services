@@ -1,7 +1,7 @@
-import 'dart:typed_data'; // เพิ่มตัวนี้สำหรับจัดการไฟล์บนเว็บ
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:image_picker/image_picker.dart'; // แพ็กเกจกล้องที่เราเพิ่งลงไป
+import 'package:image_picker/image_picker.dart';
 import '../widgets/shared_booking_fields.dart';
 
 class AirBookingScreen extends StatefulWidget {
@@ -17,14 +17,17 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
   final _countController = TextEditingController(text: '1');
 
   DateTime? _selectedDate;
-  TimeOfDay? _selectedTime;
+  String? _selectedTime; // เปลี่่ยนมาเก็บเป็น String เช่น '08:30'
   final _addressController = TextEditingController();
   final _noteController = TextEditingController();
   bool _hasImage = false;
 
-  // ตัวแปรสำหรับเก็บไฟล์รูปภาพ
   XFile? _pickedImage;
-  Uint8List? _imageBytes; // จำเป็นสำหรับการอัปโหลดบนเว็บ
+  Uint8List? _imageBytes;
+
+  // ตัวแปรใหม่สำหรับจัดการลอจิกปฏิทิน
+  List<String> _bookedTimes = [];
+  bool _isLoadingTimes = false;
 
   @override
   void dispose() {
@@ -35,19 +38,56 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
     super.dispose();
   }
 
-  // ฟังก์ชันสำหรับเปิดแกลลอรี่/กล้อง
+  // ==========================================================
+  // ฟังก์ชันพระเอก: ดึงคิวที่ถูกจองไปแล้วในวันนั้นๆ
+  // ==========================================================
+  Future<void> _fetchBookedTimes(DateTime date) async {
+    setState(() {
+      _selectedDate = date;
+      _selectedTime = null; // รีเซ็ตเวลาที่เลือกไว้เมื่อเปลี่ยนวัน
+      _isLoadingTimes = true;
+    });
+
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    try {
+      final response = await Supabase.instance.client
+          .from('bookings')
+          .select('booking_time')
+          .eq('booking_date', dateStr)
+          .eq('service_type', 'แอร์')
+          .neq('status', 'cancelled');
+
+      // ดึงเวลาที่ได้มา (เช่น "08:30:00") มาตัดเหลือแค่ "08:30"
+      final times = response.map<String>((e) {
+        final timeStr = e['booking_time'] as String;
+        return timeStr.substring(0, 5);
+      }).toList();
+
+      setState(() {
+        _bookedTimes = times;
+        _isLoadingTimes = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingTimes = false);
+      // โชว์ Error ถ้าดึงไม่ได้
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการดึงคิวว่าง: $e')),
+        );
+    }
+  }
+
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    // เลือกรูปจากแกลลอรี่
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
     if (image != null) {
-      // อ่านไฟล์เป็น Byte เพื่อให้รองรับการทำงานบน Web
       final bytes = await image.readAsBytes();
       setState(() {
         _pickedImage = image;
         _imageBytes = bytes;
-        _hasImage = true; // เปลี่ยนสถานะปุ่มให้เป็นสีเขียว
+        _hasImage = true;
       });
     }
   }
@@ -99,33 +139,24 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           ),
           const SizedBox(height: 20),
 
+          // ส่งตัวแปรและฟังก์ชันใหม่ให้ SharedBookingFields
           SharedBookingFields(
             selectedDate: _selectedDate,
             selectedTime: _selectedTime,
+            bookedTimes: _bookedTimes,
+            isLoadingTimes: _isLoadingTimes,
             addressController: _addressController,
             noteController: _noteController,
             hasImage: _hasImage,
-            onDateTap: () async {
-              DateTime? picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 30)),
-              );
-              if (picked != null) {
-                setState(() => _selectedDate = picked);
-              }
+            onDateSelected: (newDate) {
+              _fetchBookedTimes(
+                newDate,
+              ); // กดวันที่ปุ๊บ สั่งยิงข้อมูลถาม Supabase ปั๊บ!
             },
-            onTimeTap: () async {
-              TimeOfDay? picked = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.now(),
-              );
-              if (picked != null) {
-                setState(() => _selectedTime = picked);
-              }
+            onTimeSelected: (newTime) {
+              setState(() => _selectedTime = newTime);
             },
-            onImageTap: _pickImage, // เรียกใช้ฟังก์ชันเลือกรูปที่เราสร้างไว้!
+            onImageTap: _pickImage,
           ),
 
           const SizedBox(height: 30),
@@ -137,7 +168,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              // 1. ป้องกันคนลืมกรอกข้อมูล
               if (_selectedDate == null ||
                   _selectedTime == null ||
                   _addressController.text.isEmpty) {
@@ -157,55 +187,47 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               if (user == null) return;
 
               try {
-                // ขึ้นข้อความบอกผู้ใช้ให้รอแป๊บ
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('กำลังตรวจสอบคิวว่างและบันทึกข้อมูล...'),
-                  ),
+                  const SnackBar(content: Text('กำลังบันทึกข้อมูล...')),
                 );
 
-                // แปลงร่าง วันที่ และ เวลา ให้อยู่ในฟอร์แมตที่ Database เข้าใจ
                 final dateStr =
                     '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
                 final timeStr =
-                    '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
+                    '$_selectedTime:00'; // ประกอบร่างเวลาให้ฐานข้อมูลเข้าใจ (เติม :00 เข้าไป)
 
                 // ========================================================
-                // ✅ ✅ ✅ ระบบเช็กคิวซ้ำ (Query จาก Database จริง) ✅ ✅ ✅
+                // ระบบเช็กคิวซ้ำตอนกดปุ่ม (เผื่อคนกดพร้อมกันเสี้ยววินาที) ก็ยังคงเก็บไว้เป็น Guard ปราการด่านสุดท้าย
                 // ========================================================
                 final existingBookings = await Supabase.instance.client
                     .from('bookings')
                     .select('id')
-                    .eq('booking_date', dateStr) // เช็กวันที่เดียวกัน
-                    .eq('booking_time', timeStr) // เช็กเวลาเดียวกัน
-                    .eq('service_type', 'แอร์') // เช็กเฉพาะบริการแอร์
-                    .neq(
-                      'status',
-                      'cancelled',
-                    ); // ไม่นับคิวที่ลูกค้ากดยกเลิกไปแล้ว
+                    .eq('booking_date', dateStr)
+                    .eq('booking_time', timeStr)
+                    .eq('service_type', 'แอร์')
+                    .neq('status', 'cancelled');
 
-                // ถ้า existingBookings มีข้อมูลแปลว่า "คิวไม่ว่าง"
                 if (existingBookings.isNotEmpty) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'ขออภัยครับ วันและเวลานี้มีคิวจองเต็มแล้ว กรุณาเลือกเวลาใหม่',
+                          'ขออภัยครับ เวลานี้เพิ่งถูกจองไปเมื่อสักครู่ กรุณาเลือกเวลาใหม่',
                           style: TextStyle(color: Colors.white),
                         ),
-                        backgroundColor:
-                            Colors.orange, // ใช้สีส้มเตือนว่าคิวเต็ม
-                        duration: Duration(seconds: 4),
+                        backgroundColor: Colors.orange,
                       ),
                     );
+                    _fetchBookedTimes(
+                      _selectedDate!,
+                    ); // รีเฟรชปุ่มเวลาใหม่ทันที
                   }
-                  return; // หยุดการทำงานทันที ไม่ให้ทะลุไปบันทึกข้อมูล
+                  return;
                 }
                 // ========================================================
 
                 String? imageUrl;
 
-                // ถ้าคิวว่าง ค่อยทำเรื่องอัปโหลดรูปภาพ (ถ้ามี)
                 if (_pickedImage != null && _imageBytes != null) {
                   final fileExt = _pickedImage!.name.split('.').last.isEmpty
                       ? 'png'
@@ -227,7 +249,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                       .getPublicUrl(filePath);
                 }
 
-                // ยิงข้อมูลขึ้นตาราง bookings
                 await Supabase.instance.client.from('bookings').insert({
                   'customer_id': user.id,
                   'service_type': 'แอร์',
