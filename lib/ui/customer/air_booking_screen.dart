@@ -137,6 +137,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
+              // 1. ป้องกันคนลืมกรอกข้อมูล
               if (_selectedDate == null ||
                   _selectedTime == null ||
                   _addressController.text.isEmpty) {
@@ -156,28 +157,63 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               if (user == null) return;
 
               try {
+                // ขึ้นข้อความบอกผู้ใช้ให้รอแป๊บ
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'กำลังส่งข้อมูลและอัปโหลดรูปภาพ... (อาจใช้เวลาสักครู่)',
-                    ),
+                    content: Text('กำลังตรวจสอบคิวว่างและบันทึกข้อมูล...'),
                   ),
                 );
 
-                String? imageUrl; // ตัวแปรเก็บลิงก์รูป
+                // แปลงร่าง วันที่ และ เวลา ให้อยู่ในฟอร์แมตที่ Database เข้าใจ
+                final dateStr =
+                    '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+                final timeStr =
+                    '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
 
-                // ถ้ามีการแนบรูปภาพ ให้เอาไปอัปโหลดขึ้น Storage ก่อน!
+                // ========================================================
+                // ✅ ✅ ✅ ระบบเช็กคิวซ้ำ (Query จาก Database จริง) ✅ ✅ ✅
+                // ========================================================
+                final existingBookings = await Supabase.instance.client
+                    .from('bookings')
+                    .select('id')
+                    .eq('booking_date', dateStr) // เช็กวันที่เดียวกัน
+                    .eq('booking_time', timeStr) // เช็กเวลาเดียวกัน
+                    .eq('service_type', 'แอร์') // เช็กเฉพาะบริการแอร์
+                    .neq(
+                      'status',
+                      'cancelled',
+                    ); // ไม่นับคิวที่ลูกค้ากดยกเลิกไปแล้ว
+
+                // ถ้า existingBookings มีข้อมูลแปลว่า "คิวไม่ว่าง"
+                if (existingBookings.isNotEmpty) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'ขออภัยครับ วันและเวลานี้มีคิวจองเต็มแล้ว กรุณาเลือกเวลาใหม่',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor:
+                            Colors.orange, // ใช้สีส้มเตือนว่าคิวเต็ม
+                        duration: Duration(seconds: 4),
+                      ),
+                    );
+                  }
+                  return; // หยุดการทำงานทันที ไม่ให้ทะลุไปบันทึกข้อมูล
+                }
+                // ========================================================
+
+                String? imageUrl;
+
+                // ถ้าคิวว่าง ค่อยทำเรื่องอัปโหลดรูปภาพ (ถ้ามี)
                 if (_pickedImage != null && _imageBytes != null) {
-                  // สร้างชื่อไฟล์ไม่ให้ซ้ำกัน โดยใช้วันที่และเวลา
                   final fileExt = _pickedImage!.name.split('.').last.isEmpty
                       ? 'png'
                       : _pickedImage!.name.split('.').last;
                   final fileName =
                       '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-                  final filePath =
-                      '${user.id}/$fileName'; // เก็บในโฟลเดอร์ชื่อ ID ลูกค้า
+                  final filePath = '${user.id}/$fileName';
 
-                  // โยนรูปขึ้น Storage
                   await Supabase.instance.client.storage
                       .from('booking_images')
                       .uploadBinary(
@@ -186,16 +222,10 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                         fileOptions: FileOptions(contentType: 'image/$fileExt'),
                       );
 
-                  // ขอลิงก์รูป (Public URL) กลับมาเพื่อเอาไปเก็บในตาราง Bookings
                   imageUrl = Supabase.instance.client.storage
                       .from('booking_images')
                       .getPublicUrl(filePath);
                 }
-
-                final dateStr =
-                    '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
-                final timeStr =
-                    '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
 
                 // ยิงข้อมูลขึ้นตาราง bookings
                 await Supabase.instance.client.from('bookings').insert({
@@ -211,8 +241,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   'booking_date': dateStr,
                   'booking_time': timeStr,
                   'status': 'pending',
-                  'image_url':
-                      imageUrl, // ส่งลิงก์รูปภาพไปเก็บในตารางด้วย! (ถ้าไม่ได้แนบก็จะเป็น null)
+                  'image_url': imageUrl,
                 });
 
                 if (mounted) {
