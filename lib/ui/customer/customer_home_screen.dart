@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'air_booking_screen.dart';
+import 'profile_settings_screen.dart';
 
 class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
@@ -28,14 +29,57 @@ class CustomerHomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('เลือกบริการ'),
+        // ========================================================
+        // ✅ ✅ ✅ เปลี่ยนจากปุ่ม Logout เป็นป๊อบอัพเมนูรูปคน ✅ ✅ ✅
+        // ========================================================
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.person_outline, size: 28), // ไอคอนรูปคน
+            onSelected: (value) async {
+              if (value == 'settings') {
+                // กดตั้งค่าโปรไฟล์ ไปหน้า ProfileSettingsScreen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileSettingsScreen(),
+                  ),
+                );
+              } else if (value == 'logout') {
+                // กดออกจากระบบ
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('กำลังออกจากระบบ...')),
+                );
+                await Supabase.instance.client.auth.signOut();
+
+                if (context.mounted) {
+                  // เด้งกลับไปหน้า login (ถ้าหน้า login ของคุณไม่ได้ชื่อ '/login' ให้แก้ตรงนี้นะครับ)
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
+              }
             },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings, color: Colors.blue),
+                  title: Text('ตั้งค่าโปรไฟล์'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuDivider(), // เส้นคั่น
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text('ออกจากระบบ'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
+          const SizedBox(width: 10), // เว้นระยะขอบขวานิดนึง
         ],
+        // ========================================================
       ),
       body: GridView.builder(
         padding: const EdgeInsets.all(16),
