@@ -12,7 +12,6 @@ class AirBookingScreen extends StatefulWidget {
 }
 
 class _AirBookingScreenState extends State<AirBookingScreen> {
-  // ตัวแปรสำหรับบริการแอร์
   final List<String> _services = [
     'ล้างแอร์',
     'ซ่อมแอร์',
@@ -21,7 +20,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
   ];
   String _selectedService = 'ล้างแอร์';
 
-  // ตัวแปร Dropdown BTU
   final List<String> _btuOptions = [
     'ไม่ทราบขนาด / ไม่แน่ใจ',
     '9,000 BTU',
@@ -33,13 +31,18 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
   ];
   String _selectedBtu = 'ไม่ทราบขนาด / ไม่แน่ใจ';
 
-  final _countController = TextEditingController(text: '1'); // จำนวนเครื่อง
-  final _symptomsController =
-      TextEditingController(); // อาการเสีย (แทน note เดิม)
+  final _countController = TextEditingController(text: '1');
+  final _symptomsController = TextEditingController();
+
+  // ----- Controller สำหรับ Profile -----
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  List<String> _savedAddresses = [];
+  bool _isNewAddress = false; // ตัวเช็กว่าพิมพ์ที่อยู่ใหม่หรือเปล่า
 
   DateTime? _selectedDate;
   String? _selectedTime;
-  final _addressController = TextEditingController();
 
   bool _hasImage = false;
   XFile? _pickedImage;
@@ -49,11 +52,103 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
   bool _isLoadingTimes = false;
 
   @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile(); // ดึงข้อมูลทันทีที่เปิดหน้านี้
+
+    // ดักจับการพิมพ์กล่องที่อยู่: ถ้าพิมพ์แล้วไม่เหมือนในลิสต์ ให้โชว์ปุ่มเซฟ
+    _addressController.addListener(() {
+      final text = _addressController.text.trim();
+      setState(() {
+        _isNewAddress = text.isNotEmpty && !_savedAddresses.contains(text);
+      });
+    });
+  }
+
+  @override
   void dispose() {
     _countController.dispose();
     _symptomsController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  // ==========================================
+  // ดึงข้อมูลส่วนตัวมาจาก Database (profiles)
+  // ==========================================
+  Future<void> _fetchUserProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .single();
+
+      setState(() {
+        _nameController.text = profile['full_name'] ?? '';
+        _phoneController.text = profile['phone_number'] ?? '';
+
+        // ดึงลิสต์ที่อยู่ (ถ้ามี)
+        if (profile['saved_addresses'] != null) {
+          _savedAddresses = List<String>.from(profile['saved_addresses']);
+          if (_savedAddresses.isNotEmpty) {
+            _addressController.text =
+                _savedAddresses.first; // ออโต้เติมที่อยู่อันแรกให้เลย
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Error fetching profile: $e');
+    }
+  }
+
+  // ==========================================
+  // บันทึกที่อยู่ใหม่กลับไปที่ Database
+  // ==========================================
+  Future<void> _saveNewAddress() async {
+    final text = _addressController.text.trim();
+    if (text.isEmpty) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final updatedAddresses = List<String>.from(_savedAddresses)
+      ..add(text); // เพิ่มของใหม่เข้าไปในลิสต์
+
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({
+            'saved_addresses': updatedAddresses,
+            'full_name':
+                _nameController.text, // อัปเดตชื่อเผื่อลูกค้าแก้ด้วยเลย
+            'phone_number': _phoneController.text,
+          })
+          .eq('id', user.id);
+
+      setState(() {
+        _savedAddresses = updatedAddresses; // อัปเดตลิสต์ในหน้าจอ
+        _isNewAddress = false; // ซ่อนปุ่มเซฟ
+      });
+
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('บันทึกที่อยู่ลงรายการสำเร็จ!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+    }
   }
 
   Future<void> _fetchBookedTimes(DateTime date) async {
@@ -62,10 +157,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
       _selectedTime = null;
       _isLoadingTimes = true;
     });
-
     final dateStr =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
     try {
       final response = await Supabase.instance.client
           .from('bookings')
@@ -73,12 +166,10 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           .eq('booking_date', dateStr)
           .eq('service_type', 'แอร์')
           .neq('status', 'cancelled');
-
-      final times = response
-          .map<String>((e) => (e['booking_time'] as String).substring(0, 5))
-          .toList();
       setState(() {
-        _bookedTimes = times;
+        _bookedTimes = response
+            .map<String>((e) => (e['booking_time'] as String).substring(0, 5))
+            .toList();
         _isLoadingTimes = false;
       });
     } catch (e) {
@@ -87,8 +178,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       final bytes = await image.readAsBytes();
       setState(() {
@@ -112,7 +203,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           ),
           const SizedBox(height: 10),
 
-          // 1. ปุ่มเลือกบริการแบบ Grid (2x2)
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -151,11 +241,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           ),
           const SizedBox(height: 20),
 
-          // ==========================================
-          // 2. ส่วน Dynamic: เปลี่ยนตามประเภทบริการ
-          // ==========================================
-
-          // --- ถ้าเลือกล้างแอร์ ---
           if (_selectedService == 'ล้างแอร์') ...[
             Container(
               padding: const EdgeInsets.all(15),
@@ -181,7 +266,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     value: _selectedBtu,
                     items: _btuOptions
                         .map(
-                          (String value) => DropdownMenuItem<String>(
+                          (value) => DropdownMenuItem(
                             value: value,
                             child: Text(value),
                           ),
@@ -206,7 +291,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
             ),
           ],
 
-          // --- ถ้าเลือกซ่อมแอร์ ---
           if (_selectedService == 'ซ่อมแอร์') ...[
             Container(
               padding: const EdgeInsets.all(15),
@@ -226,8 +310,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     controller: _symptomsController,
                     maxLines: 3,
                     decoration: const InputDecoration(
-                      labelText:
-                          'ระบุอาการเสีย (เช่น แอร์ไม่เย็น, มีน้ำหยด, เปิดไม่ติด)',
+                      labelText: 'ระบุอาการเสีย (เช่น แอร์ไม่เย็น, มีน้ำหยด)',
                       border: OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
@@ -238,10 +321,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
             ),
           ],
 
-          // (ติดตั้งแอร์ และ ย้ายแอร์ จะไม่มีช่องกรอกอะไรเพิ่มตามที่คุณระบุครับ)
           const SizedBox(height: 15),
 
-          // 3. ปุ่มแนบรูปภาพ (ย้ายขึ้นมาอยู่ในกลุ่มเดียวกับบริการ)
           OutlinedButton.icon(
             onPressed: _pickImage,
             icon: Icon(
@@ -263,14 +344,26 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           ),
 
           // ==========================================
-
-          // 4. เรียกใช้ Shared Widget (เหลือแค่สถานที่และเวลา)
+          // เรียกใช้ Shared Widget และโยนตัวแปรให้ครบ
+          // ==========================================
           SharedBookingFields(
             selectedDate: _selectedDate,
             selectedTime: _selectedTime,
             bookedTimes: _bookedTimes,
             isLoadingTimes: _isLoadingTimes,
+
+            nameController: _nameController,
+            phoneController: _phoneController,
             addressController: _addressController,
+            savedAddresses: _savedAddresses,
+            showSaveAddressButton: _isNewAddress,
+
+            onAddressSelected: (newAddress) {
+              if (newAddress != null) {
+                setState(() => _addressController.text = newAddress);
+              }
+            },
+            onSaveAddressTap: _saveNewAddress, // ผูกปุ่มเซฟกับฟังก์ชัน
             onDateSelected: (newDate) => _fetchBookedTimes(newDate),
             onTimeSelected: (newTime) =>
                 setState(() => _selectedTime = newTime),
@@ -287,11 +380,13 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
             onPressed: () async {
               if (_selectedDate == null ||
                   _selectedTime == null ||
-                  _addressController.text.isEmpty) {
+                  _addressController.text.isEmpty ||
+                  _nameController.text.isEmpty ||
+                  _phoneController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'กรุณากรอกวันที่ เวลา และที่อยู่ให้ครบถ้วน',
+                      'กรุณากรอกข้อมูลให้ครบถ้วน',
                       style: TextStyle(color: Colors.white),
                     ),
                     backgroundColor: Colors.red,
@@ -299,14 +394,12 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 );
                 return;
               }
-
-              // บังคับกรอกอาการเสีย ถ้าเลือกซ่อมแอร์
               if (_selectedService == 'ซ่อมแอร์' &&
                   _symptomsController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'กรุณาระบุอาการเสียให้ช่างทราบด้วยครับ',
+                      'กรุณาระบุอาการเสีย',
                       style: TextStyle(color: Colors.white),
                     ),
                     backgroundColor: Colors.orange,
@@ -322,7 +415,6 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('กำลังบันทึกข้อมูล...')),
                 );
-
                 final dateStr =
                     '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
                 final timeStr = '$_selectedTime:00';
@@ -334,13 +426,12 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     .eq('booking_time', timeStr)
                     .eq('service_type', 'แอร์')
                     .neq('status', 'cancelled');
-
                 if (existingBookings.isNotEmpty) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'ขออภัยครับ เวลานี้เพิ่งถูกจองไปเมื่อสักครู่',
+                          'คิวนี้เพิ่งเต็ม กรุณาเลือกเวลาใหม่',
                           style: TextStyle(color: Colors.white),
                         ),
                         backgroundColor: Colors.orange,
@@ -356,10 +447,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   final fileExt = _pickedImage!.name.split('.').last.isEmpty
                       ? 'png'
                       : _pickedImage!.name.split('.').last;
-                  final fileName =
-                      '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-                  final filePath = '${user.id}/$fileName';
-
+                  final filePath =
+                      '${user.id}/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
                   await Supabase.instance.client.storage
                       .from('booking_images')
                       .uploadBinary(
@@ -372,21 +461,21 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                       .getPublicUrl(filePath);
                 }
 
-                // การแพ็คข้อมูลลง Database แบบฉลาด (แพ็คเฉพาะข้อมูลที่เกี่ยวกับบริการนั้นๆ)
+                // แพ็คชื่อ เบอร์โทร และที่อยู่ ลงใน JSONB เลย ช่างจะได้เห็นข้อมูลเป๊ะๆ
                 await Supabase.instance.client.from('bookings').insert({
                   'customer_id': user.id,
                   'service_type': 'แอร์',
                   'service_details': {
                     'sub_type': _selectedService,
-                    // ถ้าเลือกล้างแอร์ ค่อยส่งค่า BTU กับ จำนวนเครื่องไป
                     'btu': _selectedService == 'ล้างแอร์' ? _selectedBtu : null,
                     'count': _selectedService == 'ล้างแอร์'
                         ? _countController.text
                         : null,
-                    // ถ้าเลือกซ่อมแอร์ ค่อยส่งค่า อาการเสียไป
                     'symptoms': _selectedService == 'ซ่อมแอร์'
                         ? _symptomsController.text
                         : null,
+                    'contact_name': _nameController.text,
+                    'contact_phone': _phoneController.text,
                     'address': _addressController.text,
                   },
                   'booking_date': dateStr,
@@ -408,14 +497,13 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   Navigator.pop(context);
                 }
               } catch (e) {
-                if (mounted) {
+                if (mounted)
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('เกิดข้อผิดพลาด: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
-                }
               }
             },
             child: const Text(

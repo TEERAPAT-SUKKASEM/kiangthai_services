@@ -5,7 +5,16 @@ class SharedBookingFields extends StatelessWidget {
   final String? selectedTime;
   final List<String> bookedTimes;
   final bool isLoadingTimes;
+
+  // เพิ่ม Controller และตัวแปรใหม่สำหรับระบบ Profile
+  final TextEditingController nameController;
+  final TextEditingController phoneController;
   final TextEditingController addressController;
+  final List<String> savedAddresses;
+  final Function(String?) onAddressSelected;
+  final bool showSaveAddressButton;
+  final VoidCallback onSaveAddressTap;
+
   final Function(DateTime) onDateSelected;
   final Function(String) onTimeSelected;
 
@@ -15,7 +24,13 @@ class SharedBookingFields extends StatelessWidget {
     required this.selectedTime,
     required this.bookedTimes,
     required this.isLoadingTimes,
+    required this.nameController,
+    required this.phoneController,
     required this.addressController,
+    required this.savedAddresses,
+    required this.onAddressSelected,
+    required this.showSaveAddressButton,
+    required this.onSaveAddressTap,
     required this.onDateSelected,
     required this.onTimeSelected,
   });
@@ -48,21 +63,90 @@ class SharedBookingFields extends StatelessWidget {
       children: [
         const Divider(height: 30, thickness: 2),
         const Text(
-          'ข้อมูลสถานที่',
+          'ข้อมูลสถานที่และผู้ติดต่อ',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 15),
 
+        // 1. กล่องชื่อ และ เบอร์โทร (แบ่งซ้ายขวา)
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'ชื่อ-นามสกุล',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'เบอร์โทรศัพท์',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+
+        // 2. Dropdown เลือกที่อยู่ (โชว์ก็ต่อเมื่อมีที่อยู่เคยเซฟไว้)
+        if (savedAddresses.isNotEmpty) ...[
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'เลือกที่อยู่ที่บันทึกไว้',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.bookmark),
+            ),
+            isExpanded: true,
+            // ถ้าข้อความในกล่องตรงกับในลิสต์ ให้โชว์ค่านั้น ถ้าไม่ตรง (ลูกค้าพิมพ์แก้) ให้กลายเป็น null
+            value: savedAddresses.contains(addressController.text)
+                ? addressController.text
+                : null,
+            items: savedAddresses.map((addr) {
+              return DropdownMenuItem(
+                value: addr,
+                child: Text(addr, maxLines: 1, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: onAddressSelected,
+          ),
+          const SizedBox(height: 15),
+        ],
+
+        // 3. กล่องที่อยู่ (ยืดหยุ่นตามความยาว)
         TextField(
           controller: addressController,
-          maxLines: 2,
+          minLines: 2,
+          maxLines:
+              null, // ใส่ null เพื่อให้กล่องยืดลงมาเรื่อยๆ เวลากด Enter หรือพิมพ์ยาว
           decoration: const InputDecoration(
-            labelText: 'ที่อยู่หน้างาน (บ้านเลขที่, ซอย, ถนน, ตำบล)',
+            labelText: 'ที่อยู่หน้างาน (รายละเอียดเพิ่มเติม)',
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.location_on, color: Colors.redAccent),
           ),
         ),
 
+        // 4. ปุ่มบันทึกที่อยู่ (โชว์ก็ต่อเมื่อเป็นที่อยู่ใหม่ที่ไม่เคยมีในลิสต์)
+        if (showSaveAddressButton)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: onSaveAddressTap,
+              icon: const Icon(Icons.save_alt),
+              label: const Text('บันทึกที่อยู่นี้ไว้ในรายการ'),
+              style: TextButton.styleFrom(foregroundColor: Colors.green),
+            ),
+          ),
+
+        // ----------------- ส่วนของปฏิทินและเวลา (เหมือนเดิม) -----------------
         const Divider(height: 30, thickness: 2),
         const Text(
           'เลือกวันที่และเวลา',
