@@ -19,6 +19,8 @@ dependencies:
   google_fonts: ^6.2.1
   logger: ^2.4.0
   flutter_dotenv: ^5.2.1
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^18.0.0
 
 dev_dependencies:
   flutter_test:

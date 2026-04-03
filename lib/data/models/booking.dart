@@ -42,12 +42,19 @@ class Booking {
 
   String get statusLabel => switch (status) {
     'pending' => 'รอช่างรับงาน',
-    'accepted' => 'กำลังดำเนินการ',
+    'accepted' => 'ช่างรับงานแล้ว',
+    'on_the_way' => 'ช่างกำลังเดินทาง',
+    'in_progress' => 'กำลังดำเนินการ',
     'completed' => 'เสร็จสิ้น',
     'cancelled' => 'ยกเลิกแล้ว',
     'rejected' => 'ถูกปฏิเสธ',
     _ => status,
   };
+
+  bool get isActive =>
+      status == 'accepted' ||
+      status == 'on_the_way' ||
+      status == 'in_progress';
 
   String? get subType => serviceDetails['sub_type'] as String?;
   String? get contactName => serviceDetails['contact_name'] as String?;

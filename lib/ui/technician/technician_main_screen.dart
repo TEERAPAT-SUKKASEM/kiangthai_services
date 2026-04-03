@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../customer/profile_settings_screen.dart';
+import '../../data/models/booking.dart';
+import '../chat/chat_screen.dart';
 
 class TechnicianMainScreen extends StatefulWidget {
   const TechnicianMainScreen({super.key});
@@ -103,48 +105,168 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   }
 
   // ==========================================
-  // ฟังก์ชัน: ช่างกด "ปิดงาน" (เสร็จสิ้น)
+  // ฟังก์ชัน: อัปเดต stage ของงาน
   // ==========================================
-  Future<void> _completeJob(dynamic bookingId) async {
-    // 1. หลอกตา: ซ่อนการ์ดทันทีที่กด!
-    setState(() => _processingJobs.add(bookingId));
+  Future<void> _updateStage(dynamic bookingId, String newStatus) async {
+    final isCompleting = newStatus == 'completed';
+    if (isCompleting) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('ยืนยันการปิดงาน'),
+          content: const Text('ยืนยันว่างานเสร็จสมบูรณ์แล้วใช่หรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+      setState(() => _processingJobs.add(bookingId));
+    }
 
     try {
       await Supabase.instance.client
           .from('bookings')
-          .update({'status': 'completed'})
+          .update({'status': newStatus})
           .eq('id', bookingId);
 
-      if (mounted)
+      if (mounted) {
+        final msg = switch (newStatus) {
+          'on_the_way' => 'อัปเดต: กำลังเดินทางไปหาลูกค้า',
+          'in_progress' => 'อัปเดต: เริ่มดำเนินการแล้ว',
+          'completed' => 'ปิดงานเรียบร้อย เยี่ยมมาก!',
+          _ => 'อัปเดตสถานะแล้ว',
+        };
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ปิดงานเรียบร้อย เยี่ยมมาก!'),
-            backgroundColor: Colors.blue,
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: isCompleting ? Colors.green : Colors.blueAccent,
           ),
         );
+      }
     } catch (e) {
-      setState(() => _processingJobs.remove(bookingId));
-      if (mounted)
+      if (isCompleting) setState(() => _processingJobs.remove(bookingId));
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
             backgroundColor: Colors.red,
           ),
         );
+      }
     }
   }
+
+  // แสดง progress bar ของขั้นตอนงาน
+  Widget _buildStageIndicator(String status) {
+    final stages = [
+      ('accepted', 'รับงาน'),
+      ('on_the_way', 'เดินทาง'),
+      ('in_progress', 'ดำเนินการ'),
+      ('completed', 'เสร็จสิ้น'),
+    ];
+    final currentIndex = stages.indexWhere((s) => s.$1 == status);
+
+    return Row(
+      children: List.generate(stages.length, (i) {
+        final isDone = i <= currentIndex;
+        final isLast = i == stages.length - 1;
+        return Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor:
+                          isDone ? Colors.blueAccent : Colors.grey.shade300,
+                      child: Icon(
+                        isDone ? Icons.check : Icons.circle,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      stages[i].$2,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDone ? Colors.blueAccent : Colors.grey,
+                        fontWeight: isDone
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Divider(
+                    thickness: 2,
+                    color: i < currentIndex
+                        ? Colors.blueAccent
+                        : Colors.grey.shade300,
+                  ),
+                ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  // ปุ่มขั้นตอนถัดไป
+  Widget _buildNextStageButton(Booking booking) {
+    final (String label, String nextStatus, Color color) =
+        switch (booking.status) {
+      'accepted' => ('กำลังเดินทาง', 'on_the_way', Colors.orange),
+      'on_the_way' => ('ถึงหน้างานแล้ว', 'in_progress', Colors.blue),
+      'in_progress' => ('ปิดงาน', 'completed', Colors.green),
+      _ => ('', '', Colors.grey),
+    };
+
+    if (label.isEmpty) return const SizedBox.shrink();
+
+    return ElevatedButton.icon(
+      onPressed: () => _updateStage(booking.id, nextStatus),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+      ),
+      icon: Icon(
+        nextStatus == 'completed' ? Icons.check_circle : Icons.arrow_forward,
+        size: 18,
+      ),
+      label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Color _chipColor(String status) => switch (status) {
+    'pending' => Colors.orange,
+    'accepted' => Colors.blue,
+    'completed' => Colors.green,
+    _ => Colors.grey,
+  };
 
   // ==========================================
   // ส่วนสร้างการ์ดแสดงรายละเอียดใบงาน
   // ==========================================
-  Widget _buildJobCard(Map<String, dynamic> booking, bool isMyJob) {
-    // 🌟 🌟 🌟 เช็กว่าถ้างายนี้กำลังกดรับ/กดปิด ให้ซ่อนไปเลย (วาดกล่องเปล่าๆ แทน)
-    if (_processingJobs.contains(booking['id'])) {
+  Widget _buildJobCard(Map<String, dynamic> raw, bool isMyJob) {
+    final booking = Booking.fromMap(raw);
+
+    if (_processingJobs.contains(booking.id)) {
       return const SizedBox.shrink();
     }
-
-    final details = booking['service_details'] ?? {};
-    final imageUrl = booking['image_url'];
 
     return Card(
       elevation: 3,
@@ -157,27 +279,21 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'งาน: ${booking['service_type']} (${details['sub_type']})',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Expanded(
+                  child: Text(
+                    'งาน: ${booking.serviceType} (${booking.subType ?? ''})',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 Chip(
                   label: Text(
-                    booking['status'] == 'pending'
-                        ? 'รอช่างรับงาน'
-                        : (booking['status'] == 'accepted'
-                              ? 'กำลังดำเนินการ'
-                              : 'เสร็จสิ้น'),
+                    booking.statusLabel,
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
-                  backgroundColor: booking['status'] == 'pending'
-                      ? Colors.orange
-                      : (booking['status'] == 'accepted'
-                            ? Colors.blue
-                            : Colors.green),
+                  backgroundColor: _chipColor(booking.status),
                 ),
               ],
             ),
@@ -186,7 +302,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.calendar_month, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('วันที่นัด: ${booking['booking_date']}'),
+                Text('วันที่นัด: ${booking.bookingDate}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -194,9 +310,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.access_time, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text(
-                  'เวลา: ${booking['booking_time'].toString().substring(0, 5)}',
-                ),
+                Text('เวลา: ${booking.bookingTime}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -204,7 +318,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.person, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('ลูกค้า: ${details['contact_name'] ?? 'ไม่ระบุ'}'),
+                Text('ลูกค้า: ${booking.contactName ?? 'ไม่ระบุ'}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -212,26 +326,20 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.phone, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('เบอร์ติดต่อ: ${details['contact_phone'] ?? 'ไม่ระบุ'}'),
+                Text('เบอร์ติดต่อ: ${booking.contactPhone ?? 'ไม่ระบุ'}'),
               ],
             ),
             const SizedBox(height: 5),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.location_on,
-                  size: 18,
-                  color: Colors.redAccent,
-                ),
+                const Icon(Icons.location_on, size: 18, color: Colors.redAccent),
                 const SizedBox(width: 5),
-                Expanded(
-                  child: Text('ที่อยู่: ${details['address'] ?? 'ไม่ระบุ'}'),
-                ),
+                Expanded(child: Text('ที่อยู่: ${booking.address ?? 'ไม่ระบุ'}')),
               ],
             ),
 
-            if (details['btu'] != null || details['symptoms'] != null) ...[
+            if (booking.btu != null || booking.symptoms != null) ...[
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -242,13 +350,11 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (details['btu'] != null)
+                    if (booking.btu != null)
+                      Text('ขนาด: ${booking.btu} | จำนวน: ${booking.count} เครื่อง'),
+                    if (booking.symptoms != null)
                       Text(
-                        'ขนาด: ${details['btu']} | จำนวน: ${details['count']} เครื่อง',
-                      ),
-                    if (details['symptoms'] != null)
-                      Text(
-                        'อาการเสีย: ${details['symptoms']}',
+                        'อาการเสีย: ${booking.symptoms}',
                         style: const TextStyle(color: Colors.red),
                       ),
                   ],
@@ -256,13 +362,13 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               ),
             ],
 
-            if (imageUrl != null && imageUrl.isNotEmpty)
+            if (booking.imageUrl != null && booking.imageUrl!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    imageUrl,
+                    booking.imageUrl!,
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -276,7 +382,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _acceptJob(booking['id']),
+                      onPressed: () => _acceptJob(booking.id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
                         foregroundColor: Colors.white,
@@ -291,7 +397,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _rejectJob(booking['id']),
+                      onPressed: () => _rejectJob(booking.id),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red),
@@ -305,21 +411,35 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                   ),
                 ],
               ),
-            ] else if (booking['status'] == 'accepted') ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _completeJob(booking['id']),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+            ] else if (booking.isActive) ...[
+              _buildStageIndicator(booking.status),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        final tech = Supabase.instance.client.auth.currentUser;
+                        if (tech == null) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatScreen(
+                              bookingId: booking.id,
+                              currentUserId: tech.id,
+                              currentUserRole: 'technician',
+                              otherPersonName: booking.contactName ?? 'ลูกค้า',
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.chat),
+                      label: const Text('แชท'),
+                    ),
                   ),
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text(
-                    'ทำงานเสร็จสิ้น (ปิดงาน)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildNextStageButton(booking)),
+                ],
               ),
             ],
           ],
@@ -398,10 +518,16 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                         return const Center(child: CircularProgressIndicator());
                       final bookings = snapshot.data ?? [];
 
+                      const activeStatuses = {
+                        'accepted',
+                        'on_the_way',
+                        'in_progress',
+                      };
                       final displayed = _showHistory
                           ? bookings
                           : bookings
-                              .where((b) => b['status'] == 'accepted')
+                              .where((b) =>
+                                  activeStatuses.contains(b['status']))
                               .toList();
 
                       return Column(

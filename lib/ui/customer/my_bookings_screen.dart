@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/models/booking.dart';
+import '../chat/chat_screen.dart';
 
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({super.key});
 
-  // ========================================================
-  // ฟังก์ชันกล่องยืนยันการยกเลิกคิว (Pop-up Confirm)
-  // ========================================================
+  Color _statusColor(String status) => switch (status) {
+    'pending' => Colors.orange,
+    'accepted' => Colors.blue,
+    'on_the_way' => Colors.orange,
+    'in_progress' => Colors.blue,
+    'completed' => Colors.green,
+    'cancelled' || 'rejected' => Colors.red,
+    _ => Colors.grey,
+  };
+
   Future<void> _showCancelDialog(
     BuildContext context,
     dynamic bookingId,
@@ -18,13 +27,11 @@ class MyBookingsScreen extends StatelessWidget {
         content: const Text('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองคิวนี้?'),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, false), // ปิดกล่องและส่งค่า false
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('ปิด', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, true), // ปิดกล่องและส่งค่า true
+            onPressed: () => Navigator.pop(context, true),
             child: const Text(
               'ใช่, ยกเลิกการจอง',
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
@@ -34,10 +41,8 @@ class MyBookingsScreen extends StatelessWidget {
       ),
     );
 
-    // ถ้าลูกค้ากด "ใช่"
     if (confirm == true) {
       try {
-        // ยิงคำสั่งอัปเดตสถานะเป็น cancelled ในฐานข้อมูล
         await Supabase.instance.client
             .from('bookings')
             .update({'status': 'cancelled'})
@@ -88,9 +93,8 @@ class MyBookingsScreen extends StatelessWidget {
                   );
                 }
 
-                final bookings = snapshot.data;
-
-                if (bookings == null || bookings.isEmpty) {
+                final raw = snapshot.data ?? [];
+                if (raw.isEmpty) {
                   return const Center(
                     child: Text(
                       'คุณยังไม่มีประวัติการจองบริการครับ',
@@ -99,31 +103,16 @@ class MyBookingsScreen extends StatelessWidget {
                   );
                 }
 
+                final bookings = raw.map(Booking.fromMap).toList();
+
                 return ListView.builder(
                   padding: const EdgeInsets.all(10),
                   itemCount: bookings.length,
                   itemBuilder: (context, index) {
                     final booking = bookings[index];
-                    final details = booking['service_details'] ?? {};
-                    final imageUrl = booking['image_url'];
-
-                    // แปลงสถานะให้เป็นภาษาไทยที่อ่านง่าย
-                    String statusText = booking['status'];
-                    Color statusColor = Colors.grey;
-
-                    if (statusText == 'pending') {
-                      statusText = 'รอช่างรับงาน';
-                      statusColor = Colors.orange;
-                    } else if (statusText == 'cancelled') {
-                      statusText = 'ยกเลิกแล้ว';
-                      statusColor = Colors.red;
-                    } else if (statusText == 'accepted') {
-                      statusText = 'ช่างรับงานแล้ว';
-                      statusColor = Colors.blue;
-                    } else if (statusText == 'completed') {
-                      statusText = 'เสร็จสิ้น';
-                      statusColor = Colors.green;
-                    }
+                    final isCancelled = booking.status == 'cancelled' ||
+                        booking.status == 'rejected';
+                    final statusColor = _statusColor(booking.status);
 
                     return Card(
                       elevation: 2,
@@ -136,24 +125,24 @@ class MyBookingsScreen extends StatelessWidget {
                             ListTile(
                               contentPadding: EdgeInsets.zero,
                               leading: CircleAvatar(
-                                backgroundColor: statusText == 'ยกเลิกแล้ว'
+                                backgroundColor: isCancelled
                                     ? Colors.grey.shade300
                                     : Colors.blueAccent,
                                 child: Icon(
                                   Icons.build,
-                                  color: statusText == 'ยกเลิกแล้ว'
+                                  color: isCancelled
                                       ? Colors.grey
                                       : Colors.white,
                                 ),
                               ),
                               title: Text(
-                                'บริการ: ${booking['service_type']} (${details['sub_type'] ?? ''})',
+                                'บริการ: ${booking.serviceType} (${booking.subType ?? ''})',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  decoration: statusText == 'ยกเลิกแล้ว'
+                                  decoration: isCancelled
                                       ? TextDecoration.lineThrough
-                                      : null, // ถ้าขีดฆ่าให้ดูรู้ว่ายกเลิก
-                                  color: statusText == 'ยกเลิกแล้ว'
+                                      : null,
+                                  color: isCancelled
                                       ? Colors.grey
                                       : Colors.black,
                                 ),
@@ -163,14 +152,14 @@ class MyBookingsScreen extends StatelessWidget {
                                 children: [
                                   const SizedBox(height: 5),
                                   Text(
-                                    'วันที่: ${booking['booking_date']} | เวลา: ${booking['booking_time'].toString().substring(0, 5)}',
+                                    'วันที่: ${booking.bookingDate} | เวลา: ${booking.bookingTime}',
                                   ),
                                   const SizedBox(height: 5),
                                   Row(
                                     children: [
                                       const Text('สถานะ: '),
                                       Text(
-                                        statusText,
+                                        booking.statusLabel,
                                         style: TextStyle(
                                           color: statusColor,
                                           fontWeight: FontWeight.bold,
@@ -182,65 +171,83 @@ class MyBookingsScreen extends StatelessWidget {
                               ),
                             ),
 
-                            if (imageUrl != null && imageUrl.isNotEmpty)
+                            if (booking.imageUrl != null &&
+                                booking.imageUrl!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 10.0),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8.0),
-                                  // ถ้ายกเลิกแล้ว ให้รูปภาพดูจางๆ ลง
                                   child: Opacity(
-                                    opacity: statusText == 'ยกเลิกแล้ว'
-                                        ? 0.4
-                                        : 1.0,
+                                    opacity: isCancelled ? 0.4 : 1.0,
                                     child: Image.network(
-                                      imageUrl,
+                                      booking.imageUrl!,
                                       width: double.infinity,
                                       height: 200,
                                       fit: BoxFit.cover,
                                       loadingBuilder:
                                           (context, child, loadingProgress) {
-                                            if (loadingProgress == null)
-                                              return child;
-                                            return Container(
-                                              width: double.infinity,
-                                              height: 200,
-                                              color: Colors.grey[200],
-                                              child: const Center(
-                                                child:
-                                                    CircularProgressIndicator(),
-                                              ),
-                                            );
-                                          },
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Container(
+                                          width: double.infinity,
+                                          height: 200,
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      },
                                       errorBuilder:
                                           (context, error, stackTrace) {
-                                            return Container(
-                                              width: double.infinity,
-                                              height: 200,
-                                              color: Colors.grey[200],
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.error_outline,
-                                                  color: Colors.red,
-                                                  size: 40,
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                        return Container(
+                                          width: double.infinity,
+                                          height: 200,
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.error_outline,
+                                              color: Colors.red,
+                                              size: 40,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),
                               ),
 
-                            // ========================================================
-                            // ปุ่มยกเลิกคิว (โชว์เฉพาะคิวที่ยังเป็น pending)
-                            // ========================================================
-                            if (booking['status'] == 'pending') ...[
+                            if (booking.status == 'accepted') ...[
+                              const Divider(height: 20),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatScreen(
+                                        bookingId: booking.id,
+                                        currentUserId: user.id,
+                                        currentUserRole: 'customer',
+                                        otherPersonName: 'ช่างเทคนิค',
+                                      ),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.chat, color: Colors.blueAccent),
+                                  label: const Text(
+                                    'แชทกับช่าง',
+                                    style: TextStyle(color: Colors.blueAccent),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (booking.status == 'pending') ...[
                               const Divider(height: 20),
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton.icon(
                                   onPressed: () =>
-                                      _showCancelDialog(context, booking['id']),
+                                      _showCancelDialog(context, booking.id),
                                   icon: const Icon(
                                     Icons.cancel_outlined,
                                     color: Colors.red,

@@ -28,13 +28,17 @@ class AuthRepository {
     required String phoneNumber,
     required String role,
   }) async {
-    await _supabase.from('profiles').insert({
-      'id': userId,
-      'full_name': fullName,
-      'phone_number': phoneNumber,
-      'role': role,
-      'saved_addresses': [],
-    });
+    // upsert handles both: new profile (no trigger) and existing profile (trigger already ran)
+    await _supabase.from('profiles').upsert(
+      {
+        'id': userId,
+        'full_name': fullName,
+        'phone_number': phoneNumber,
+        'role': role,
+        'saved_addresses': <String>[],
+      },
+      onConflict: 'id',
+    );
   }
 
   // ดึง role ของผู้ใช้จากตาราง profiles

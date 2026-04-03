@@ -4,7 +4,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
 import 'ui/auth/login_screen.dart';
+import 'ui/admin/admin_main_screen.dart';
 import 'ui/customer/customer_main_screen.dart';
 import 'package:kiangthai_services/ui/technician/technician_main_screen.dart';
 
@@ -17,6 +19,8 @@ void main() async {
     url: dotenv.env['SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
+
+  await NotificationService.initialize();
 
   runApp(const KiangThaiApp());
 }
@@ -62,6 +66,9 @@ class KiangThaiApp extends StatelessWidget {
 
               if (role == 'technician') {
                 return const TechnicianMainScreen();
+              }
+              if (role == 'admin') {
+                return const AdminMainScreen();
               }
               return const CustomerMainScreen();
             },
