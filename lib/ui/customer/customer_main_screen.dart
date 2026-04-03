@@ -54,12 +54,12 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
             if (newStatus == oldStatus) return;
 
             final (String message, Color color) = switch (newStatus) {
-              'accepted' => ('ช่างรับงานของคุณแล้ว!', Colors.blue),
-              'on_the_way' => ('ช่างกำลังเดินทางมาหาคุณแล้ว!', Colors.orange),
-              'in_progress' => ('ช่างเริ่มดำเนินการแล้ว!', Colors.blue),
-              'completed' => ('งานเสร็จสิ้นแล้ว!', Colors.green),
-              'rejected' => ('ช่างปฏิเสธงาน กรุณาจองใหม่', Colors.red),
-              _ => ('สถานะการจองเปลี่ยนแปลง', Colors.grey),
+              'accepted' => ('Technician has accepted your job!', Colors.blue),
+              'on_the_way' => ('Technician is on the way!', Colors.orange),
+              'in_progress' => ('Technician has started the job!', Colors.blue),
+              'completed' => ('Job completed!', Colors.green),
+              'rejected' => ('Technician rejected the job. Please rebook.', Colors.red),
+              _ => ('Booking status changed', Colors.grey),
             };
 
             ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +74,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
                 backgroundColor: color,
                 duration: const Duration(seconds: 5),
                 action: SnackBarAction(
-                  label: 'ดูการจอง',
+                  label: 'View Booking',
                   textColor: Colors.white,
                   onPressed: () => setState(() => _currentIndex = 1),
                 ),
@@ -94,10 +94,10 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
         selectedItemColor: Colors.blueAccent,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'เลือกบริการ'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Services'),
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long),
-            label: 'การจองของฉัน',
+            label: 'My Bookings',
           ),
         ],
       ),

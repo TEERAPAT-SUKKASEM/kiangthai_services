@@ -3,12 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthRepository {
   final _supabase = Supabase.instance.client;
 
-  // ฟังก์ชันสมัครสมาชิก
+  // Sign up function
   Future<AuthResponse> signUp(String email, String password) async {
     return await _supabase.auth.signUp(email: email, password: password);
   }
 
-  // ฟังก์ชันล็อกอิน
+  // Sign in function
   Future<AuthResponse> signIn(String email, String password) async {
     return await _supabase.auth.signInWithPassword(
       email: email,
@@ -16,12 +16,12 @@ class AuthRepository {
     );
   }
 
-  // ฟังก์ชันล็อกเอาท์
+  // Sign out function
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
 
-  // สร้างโปรไฟล์หลังสมัครสมาชิก
+  // Create profile after sign up
   Future<void> createProfile({
     required String userId,
     required String fullName,
@@ -41,7 +41,7 @@ class AuthRepository {
     );
   }
 
-  // ดึง role ของผู้ใช้จากตาราง profiles
+  // Fetch user role from profiles table
   Future<String?> fetchUserRole(String userId) async {
     final data = await _supabase
         .from('profiles')

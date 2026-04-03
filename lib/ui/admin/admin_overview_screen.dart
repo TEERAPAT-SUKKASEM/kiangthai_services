@@ -74,7 +74,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ภาพรวม'),
+        title: const Text('Overview'),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
         ],
@@ -86,7 +86,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
           final stats = snapshot.data!;
           return GridView.count(
@@ -96,25 +96,25 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
             mainAxisSpacing: 16,
             children: [
               _buildStatCard(
-                label: 'การจองทั้งหมด',
+                label: 'Total Bookings',
                 value: stats['total']!,
                 icon: Icons.receipt_long,
                 color: Colors.blueAccent,
               ),
               _buildStatCard(
-                label: 'รอช่างรับงาน',
+                label: 'Awaiting Technician',
                 value: stats['pending']!,
                 icon: Icons.pending_actions,
                 color: Colors.orange,
               ),
               _buildStatCard(
-                label: 'ช่างเทคนิค',
+                label: 'Technicians',
                 value: stats['technicians']!,
                 icon: Icons.build,
                 color: Colors.green,
               ),
               _buildStatCard(
-                label: 'ลูกค้า',
+                label: 'Customers',
                 value: stats['customers']!,
                 icon: Icons.people,
                 color: Colors.purple,

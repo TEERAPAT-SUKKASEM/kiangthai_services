@@ -51,7 +51,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ดึงข้อมูลล้มเหลว: $e')),
+          SnackBar(content: Text('Failed to load profile: $e')),
         );
       }
       setState(() => _isLoading = false);
@@ -74,7 +74,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('บันทึกข้อมูลโปรไฟล์สำเร็จ!'),
+            content: Text('Profile saved successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -82,7 +82,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('บันทึกข้อมูลล้มเหลว: $e')),
+          SnackBar(content: Text('Failed to save profile: $e')),
         );
       }
     } finally {
@@ -99,19 +99,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'แก้ไขที่อยู่' : 'เพิ่มที่อยู่ใหม่'),
+        title: Text(isEditing ? 'Edit Address' : 'Add New Address'),
         content: TextField(
           controller: addressController,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'กรอกที่อยู่ของคุณ',
+            hintText: 'Enter your address',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () =>
@@ -120,7 +120,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
             ),
-            child: const Text('ตกลง'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -141,17 +141,17 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: const Text('ต้องการลบที่อยู่นี้ออกจากรายการใช่หรือไม่?'),
+        title: const Text('Confirm Delete'),
+        content: const Text('Remove this address from your list?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
-              'ลบ',
+              'Delete',
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
@@ -172,14 +172,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ตั้งค่าโปรไฟล์')),
+      appBar: AppBar(title: const Text('Profile Settings')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 const Text(
-                  'ข้อมูลส่วนตัว',
+                  'Personal Information',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -190,7 +190,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'ชื่อ-นามสกุล',
+                    labelText: 'Full Name',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
@@ -200,7 +200,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'เบอร์โทรศัพท์',
+                    labelText: 'Phone Number',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone),
                   ),
@@ -212,7 +212,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'ที่อยู่ที่บันทึกไว้',
+                      'Saved Addresses',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -222,7 +222,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     TextButton.icon(
                       onPressed: _showAddressDialog,
                       icon: const Icon(Icons.add),
-                      label: const Text('เพิ่มที่อยู่'),
+                      label: const Text('Add Address'),
                     ),
                   ],
                 ),
@@ -233,7 +233,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     padding: EdgeInsets.all(20.0),
                     child: Center(
                       child: Text(
-                        'ยังไม่มีที่อยู่ที่บันทึกไว้',
+                        'No saved addresses yet',
                         style: TextStyle(color: Colors.grey),
                       ),
                     ),
@@ -297,7 +297,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   child: _isSaving
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'บันทึกข้อมูลทั้งหมด',
+                          'Save All Changes',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -317,7 +317,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     ),
                   ),
                   icon: const Icon(Icons.logout),
-                  label: const Text('ออกจากระบบ'),
+                  label: const Text('Sign Out'),
                   onPressed: _logout,
                 ),
 

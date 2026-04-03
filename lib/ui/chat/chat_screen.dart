@@ -63,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _inputController.text = text;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ส่งข้อความไม่สำเร็จ: $e'),
+            content: Text('Failed to send message: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -128,7 +128,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (raw.isEmpty) {
                   return const Center(
                     child: Text(
-                      'ยังไม่มีข้อความ เริ่มสนทนาได้เลย!',
+                      'No messages yet. Start the conversation!',
                       style: TextStyle(color: Colors.grey),
                     ),
                   );
@@ -162,7 +162,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     minLines: 1,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: 'พิมพ์ข้อความ...',
+                      hintText: 'Type a message...',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,

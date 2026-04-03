@@ -23,17 +23,17 @@ class MyBookingsScreen extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการยกเลิก'),
-        content: const Text('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองคิวนี้?'),
+        title: const Text('Confirm Cancellation'),
+        content: const Text('Are you sure you want to cancel this booking?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ปิด', style: TextStyle(color: Colors.grey)),
+            child: const Text('Close', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
-              'ใช่, ยกเลิกการจอง',
+              'Yes, Cancel Booking',
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
@@ -51,7 +51,7 @@ class MyBookingsScreen extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('ยกเลิกการจองสำเร็จ'),
+              content: Text('Booking cancelled successfully'),
               backgroundColor: Colors.green,
             ),
           );
@@ -60,7 +60,7 @@ class MyBookingsScreen extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('เกิดข้อผิดพลาด: $e'),
+              content: Text('Error: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -74,9 +74,9 @@ class MyBookingsScreen extends StatelessWidget {
     final user = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ประวัติการจองของฉัน')),
+      appBar: AppBar(title: const Text('My Bookings')),
       body: user == null
-          ? const Center(child: Text('กรุณาล็อกอิน'))
+          ? const Center(child: Text('Please log in'))
           : StreamBuilder<List<Map<String, dynamic>>>(
               stream: Supabase.instance.client
                   .from('bookings')
@@ -89,7 +89,7 @@ class MyBookingsScreen extends StatelessWidget {
                 }
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
+                    child: Text('Error: ${snapshot.error}'),
                   );
                 }
 
@@ -97,7 +97,7 @@ class MyBookingsScreen extends StatelessWidget {
                 if (raw.isEmpty) {
                   return const Center(
                     child: Text(
-                      'คุณยังไม่มีประวัติการจองบริการครับ',
+                      'You have no booking history yet',
                       style: TextStyle(fontSize: 16),
                     ),
                   );
@@ -136,7 +136,7 @@ class MyBookingsScreen extends StatelessWidget {
                                 ),
                               ),
                               title: Text(
-                                'บริการ: ${booking.serviceType} (${booking.subType ?? ''})',
+                                'Service: ${booking.serviceType} (${booking.subType ?? ''})',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   decoration: isCancelled
@@ -152,12 +152,12 @@ class MyBookingsScreen extends StatelessWidget {
                                 children: [
                                   const SizedBox(height: 5),
                                   Text(
-                                    'วันที่: ${booking.bookingDate} | เวลา: ${booking.bookingTime}',
+                                    'Date: ${booking.bookingDate} | Time: ${booking.bookingTime}',
                                   ),
                                   const SizedBox(height: 5),
                                   Row(
                                     children: [
-                                      const Text('สถานะ: '),
+                                      const Text('Status: '),
                                       Text(
                                         booking.statusLabel,
                                         style: TextStyle(
@@ -229,13 +229,13 @@ class MyBookingsScreen extends StatelessWidget {
                                         bookingId: booking.id,
                                         currentUserId: user.id,
                                         currentUserRole: 'customer',
-                                        otherPersonName: 'ช่างเทคนิค',
+                                        otherPersonName: 'Technician',
                                       ),
                                     ),
                                   ),
                                   icon: const Icon(Icons.chat, color: Colors.blueAccent),
                                   label: const Text(
-                                    'แชทกับช่าง',
+                                    'Chat with Technician',
                                     style: TextStyle(color: Colors.blueAccent),
                                   ),
                                 ),
@@ -253,7 +253,7 @@ class MyBookingsScreen extends StatelessWidget {
                                     color: Colors.red,
                                   ),
                                   label: const Text(
-                                    'ยกเลิกการจอง',
+                                    'Cancel Booking',
                                     style: TextStyle(color: Colors.red),
                                   ),
                                   style: TextButton.styleFrom(

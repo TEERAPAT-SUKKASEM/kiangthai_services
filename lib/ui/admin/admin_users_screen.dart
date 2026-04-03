@@ -10,14 +10,14 @@ class AdminUsersScreen extends StatefulWidget {
 }
 
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
-  String _filter = 'ทั้งหมด';
+  String _filter = 'All';
 
   Future<void> _changeRole(Profile profile) async {
     final roles = ['customer', 'technician', 'admin'];
     final selected = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: Text('เปลี่ยน role ของ ${profile.fullName}'),
+        title: Text('Change role for ${profile.fullName}'),
         children: roles.map((role) {
           return SimpleDialogOption(
             onPressed: () => Navigator.pop(context, role),
@@ -33,7 +33,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         .eq('id', profile.id);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เปลี่ยน role เป็น $selected แล้ว')),
+        SnackBar(content: Text('Role changed to $selected')),
       );
     }
   }
@@ -47,13 +47,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ผู้ใช้ทั้งหมด')),
+      appBar: AppBar(title: const Text('All Users')),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
-              children: ['ทั้งหมด', 'customer', 'technician', 'admin']
+              children: ['All', 'customer', 'technician', 'admin']
                   .map((f) => Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
@@ -78,12 +78,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final raw = snapshot.data ?? [];
-                final filtered = _filter == 'ทั้งหมด'
+                final filtered = _filter == 'All'
                     ? raw
                     : raw.where((p) => p['role'] == _filter).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('ไม่มีผู้ใช้'));
+                  return const Center(child: Text('No users found'));
                 }
 
                 return ListView.builder(
@@ -110,12 +110,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                         title: Text(
                           profile.fullName.isNotEmpty
                               ? profile.fullName
-                              : 'ไม่ระบุชื่อ',
+                              : 'No name',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(profile.phoneNumber.isNotEmpty
                             ? profile.phoneNumber
-                            : 'ไม่ระบุเบอร์'),
+                            : 'No phone'),
                         trailing: GestureDetector(
                           onTap: () => _changeRole(profile),
                           child: Chip(

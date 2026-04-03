@@ -24,7 +24,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('แอดมิน - Kiang Thai'),
+        title: const Text('Admin - Kiang Thai'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
@@ -42,15 +42,15 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
-            label: 'ภาพรวม',
+            label: 'Overview',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long),
-            label: 'การจอง',
+            label: 'Bookings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.people),
-            label: 'ผู้ใช้',
+            label: 'Users',
           ),
         ],
       ),

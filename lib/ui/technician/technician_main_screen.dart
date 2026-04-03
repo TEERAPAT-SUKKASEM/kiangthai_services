@@ -15,18 +15,16 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   final Set<dynamic> _processingJobs = {};
   bool _showHistory = false;
 
-  // ==========================================
-  // ฟังก์ชัน: ช่างกด "รับงาน"
-  // ==========================================
+  // Function: technician accepts a job
   Future<void> _acceptJob(dynamic bookingId) async {
     final tech = Supabase.instance.client.auth.currentUser;
     if (tech == null) return;
 
-    // 1. หลอกตา: เอา ID ใส่ในลิสต์กำลังประมวลผล เพื่อซ่อนการ์ดทันทีที่กด!
+    // 1. Optimistic UI: add ID to processing set to hide card immediately
     setState(() => _processingJobs.add(bookingId));
 
     try {
-      // 2. ส่งข้อมูลไปอัปเดตหลังบ้านเงียบๆ
+      // 2. Send update to backend silently
       await Supabase.instance.client
           .from('bookings')
           .update({'status': 'accepted', 'technician_id': tech.id})
@@ -35,41 +33,39 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('รับงานสำเร็จ!'),
+            content: Text('Job accepted!'),
             backgroundColor: Colors.green,
           ),
         );
     } catch (e) {
-      // ถ้าพัง ให้เอาการ์ดกลับมาโชว์เหมือนเดิม
+      // On failure, restore the card
       setState(() => _processingJobs.remove(bookingId));
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
     }
   }
 
-  // ==========================================
-  // ฟังก์ชัน: ช่างกด "ปฏิเสธงาน"
-  // ==========================================
+  // Function: technician rejects a job
   Future<void> _rejectJob(dynamic bookingId) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการปฏิเสธงาน'),
-        content: const Text('คุณแน่ใจหรือไม่ว่าต้องการปฏิเสธงานนี้?'),
+        title: const Text('Confirm Rejection'),
+        content: const Text('Are you sure you want to reject this job?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
-              'ปฏิเสธงาน',
+              'Reject Job',
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
@@ -88,7 +84,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ปฏิเสธงานแล้ว')),
+          const SnackBar(content: Text('Job rejected')),
         );
       }
     } catch (e) {
@@ -96,7 +92,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -104,26 +100,24 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
     }
   }
 
-  // ==========================================
-  // ฟังก์ชัน: อัปเดต stage ของงาน
-  // ==========================================
+  // Function: update job stage
   Future<void> _updateStage(dynamic bookingId, String newStatus) async {
     final isCompleting = newStatus == 'completed';
     if (isCompleting) {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('ยืนยันการปิดงาน'),
-          content: const Text('ยืนยันว่างานเสร็จสมบูรณ์แล้วใช่หรือไม่?'),
+          title: const Text('Confirm Job Completion'),
+          content: const Text('Mark this job as fully completed?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+              child: const Text('Confirm', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -140,10 +134,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
       if (mounted) {
         final msg = switch (newStatus) {
-          'on_the_way' => 'อัปเดต: กำลังเดินทางไปหาลูกค้า',
-          'in_progress' => 'อัปเดต: เริ่มดำเนินการแล้ว',
-          'completed' => 'ปิดงานเรียบร้อย เยี่ยมมาก!',
-          _ => 'อัปเดตสถานะแล้ว',
+          'on_the_way' => 'Updated: On the way to customer',
+          'in_progress' => 'Updated: Work in progress',
+          'completed' => 'Job closed. Great work!',
+          _ => 'Status updated',
         };
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,7 +151,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -165,13 +159,13 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
     }
   }
 
-  // แสดง progress bar ของขั้นตอนงาน
+  // Build job stage progress indicator
   Widget _buildStageIndicator(String status) {
     final stages = [
-      ('accepted', 'รับงาน'),
-      ('on_the_way', 'เดินทาง'),
-      ('in_progress', 'ดำเนินการ'),
-      ('completed', 'เสร็จสิ้น'),
+      ('accepted', 'Accepted'),
+      ('on_the_way', 'On the Way'),
+      ('in_progress', 'In Progress'),
+      ('completed', 'Completed'),
     ];
     final currentIndex = stages.indexWhere((s) => s.$1 == status);
 
@@ -225,13 +219,13 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
     );
   }
 
-  // ปุ่มขั้นตอนถัดไป
+  // Next stage button
   Widget _buildNextStageButton(Booking booking) {
     final (String label, String nextStatus, Color color) =
         switch (booking.status) {
-      'accepted' => ('กำลังเดินทาง', 'on_the_way', Colors.orange),
-      'on_the_way' => ('ถึงหน้างานแล้ว', 'in_progress', Colors.blue),
-      'in_progress' => ('ปิดงาน', 'completed', Colors.green),
+      'accepted' => ('On My Way', 'on_the_way', Colors.orange),
+      'on_the_way' => ('Arrived at Site', 'in_progress', Colors.blue),
+      'in_progress' => ('Close Job', 'completed', Colors.green),
       _ => ('', '', Colors.grey),
     };
 
@@ -258,9 +252,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
     _ => Colors.grey,
   };
 
-  // ==========================================
-  // ส่วนสร้างการ์ดแสดงรายละเอียดใบงาน
-  // ==========================================
+  // Build job detail card
   Widget _buildJobCard(Map<String, dynamic> raw, bool isMyJob) {
     final booking = Booking.fromMap(raw);
 
@@ -281,7 +273,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'งาน: ${booking.serviceType} (${booking.subType ?? ''})',
+                    'Job: ${booking.serviceType} (${booking.subType ?? ''})',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -302,7 +294,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.calendar_month, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('วันที่นัด: ${booking.bookingDate}'),
+                Text('Date: ${booking.bookingDate}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -310,7 +302,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.access_time, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('เวลา: ${booking.bookingTime}'),
+                Text('Time: ${booking.bookingTime}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -318,7 +310,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.person, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('ลูกค้า: ${booking.contactName ?? 'ไม่ระบุ'}'),
+                Text('Customer: ${booking.contactName ?? 'N/A'}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -326,7 +318,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.phone, size: 18, color: Colors.grey),
                 const SizedBox(width: 5),
-                Text('เบอร์ติดต่อ: ${booking.contactPhone ?? 'ไม่ระบุ'}'),
+                Text('Phone: ${booking.contactPhone ?? 'N/A'}'),
               ],
             ),
             const SizedBox(height: 5),
@@ -335,7 +327,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               children: [
                 const Icon(Icons.location_on, size: 18, color: Colors.redAccent),
                 const SizedBox(width: 5),
-                Expanded(child: Text('ที่อยู่: ${booking.address ?? 'ไม่ระบุ'}')),
+                Expanded(child: Text('Address: ${booking.address ?? 'N/A'}')),
               ],
             ),
 
@@ -351,10 +343,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (booking.btu != null)
-                      Text('ขนาด: ${booking.btu} | จำนวน: ${booking.count} เครื่อง'),
+                      Text('Size: ${booking.btu} | Units: ${booking.count}'),
                     if (booking.symptoms != null)
                       Text(
-                        'อาการเสีย: ${booking.symptoms}',
+                        'Issue: ${booking.symptoms}',
                         style: const TextStyle(color: Colors.red),
                       ),
                   ],
@@ -389,7 +381,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                       ),
                       icon: const Icon(Icons.pan_tool),
                       label: const Text(
-                        'รับงาน',
+                        'Accept',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -404,7 +396,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                       ),
                       icon: const Icon(Icons.cancel_outlined),
                       label: const Text(
-                        'ปฏิเสธ',
+                        'Reject',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -428,13 +420,13 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                               bookingId: booking.id,
                               currentUserId: tech.id,
                               currentUserRole: 'technician',
-                              otherPersonName: booking.contactName ?? 'ลูกค้า',
+                              otherPersonName: booking.contactName ?? 'Customer',
                             ),
                           ),
                         );
                       },
                       icon: const Icon(Icons.chat),
-                      label: const Text('แชท'),
+                      label: const Text('Chat'),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -456,7 +448,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Kiang Thai Service (ช่าง)'),
+          title: const Text('Kiang Thai Service (Technician)'),
           actions: [
             IconButton(
               icon: const Icon(Icons.person_outline),
@@ -473,16 +465,16 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.blueAccent,
             tabs: [
-              Tab(icon: Icon(Icons.new_releases), text: 'งานใหม่ (รอรับ)'),
-              Tab(icon: Icon(Icons.engineering), text: 'งานของฉัน'),
+              Tab(icon: Icon(Icons.new_releases), text: 'New Jobs'),
+              Tab(icon: Icon(Icons.engineering), text: 'My Jobs'),
             ],
           ),
         ),
         body: tech == null
-            ? const Center(child: Text('กรุณาล็อกอิน'))
+            ? const Center(child: Text('Please log in'))
             : TabBarView(
                 children: [
-                  // แท็บ 1: งานใหม่
+                  // Tab 1: New jobs
                   StreamBuilder<List<Map<String, dynamic>>>(
                     stream: Supabase.instance.client
                         .from('bookings')
@@ -495,7 +487,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                       final bookings = snapshot.data;
                       if (bookings == null || bookings.isEmpty)
                         return const Center(
-                          child: Text('ยังไม่มีงานใหม่เข้ามาครับ'),
+                          child: Text('No new jobs available'),
                         );
                       return ListView.builder(
                         padding: const EdgeInsets.all(10),
@@ -506,7 +498,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                     },
                   ),
 
-                  // แท็บ 2: งานของฉัน
+                  // Tab 2: My jobs
                   StreamBuilder<List<Map<String, dynamic>>>(
                     stream: Supabase.instance.client
                         .from('bookings')
@@ -538,7 +530,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 FilterChip(
-                                  label: const Text('แสดงประวัติ'),
+                                  label: const Text('Show History'),
                                   selected: _showHistory,
                                   onSelected: (val) =>
                                       setState(() => _showHistory = val),
@@ -551,8 +543,8 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                                 ? Center(
                                     child: Text(
                                       _showHistory
-                                          ? 'ยังไม่มีประวัติงาน'
-                                          : 'ไม่มีงานที่กำลังดำเนินการ',
+                                          ? 'No job history yet'
+                                          : 'No active jobs',
                                     ),
                                   )
                                 : ListView.builder(

@@ -39,7 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       final userId = response.user?.id;
-      if (userId == null) throw Exception('ไม่พบข้อมูลผู้ใช้หลังสมัคร');
+      if (userId == null) throw Exception('User not found after registration');
 
       await _authRepo.createProfile(
         userId: userId,
@@ -51,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('สมัครสมาชิกสำเร็จ! กรุณาล็อกอิน'),
+            content: Text('Registration successful! Please log in'),
             backgroundColor: Colors.green,
           ),
         );
@@ -61,7 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('ผิดพลาด: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -71,7 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('สมัครสมาชิก')),
+      appBar: AppBar(title: const Text('Register')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -82,24 +82,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'ชื่อ-นามสกุล',
+                  labelText: 'Full Name',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person),
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'กรุณากรอกชื่อ' : null,
+                    (v == null || v.trim().isEmpty) ? 'Please enter your name' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: 'เบอร์โทรศัพท์',
+                  labelText: 'Phone Number',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.phone),
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'กรุณากรอกเบอร์โทร' : null,
+                    (v == null || v.trim().isEmpty) ? 'Please enter your phone number' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -111,8 +111,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.email),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'กรุณากรอก Email';
-                  if (!v.contains('@')) return 'Email ไม่ถูกต้อง';
+                  if (v == null || v.trim().isEmpty) return 'Please enter your email';
+                  if (!v.contains('@')) return 'Invalid email address';
                   return null;
                 },
               ),
@@ -126,14 +126,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.lock),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'กรุณากรอก Password';
-                  if (v.length < 6) return 'Password ต้องมีอย่างน้อย 6 ตัวอักษร';
+                  if (v == null || v.isEmpty) return 'Please enter a password';
+                  if (v.length < 6) return 'Password must be at least 6 characters';
                   return null;
                 },
               ),
               const SizedBox(height: 24),
               const Text(
-                'ประเภทบัญชี',
+                'Account Type',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
@@ -141,7 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Expanded(
                     child: _RoleCard(
-                      label: 'ลูกค้า',
+                      label: 'Customer',
                       icon: Icons.person,
                       value: 'customer',
                       selected: _selectedRole == 'customer',
@@ -151,7 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _RoleCard(
-                      label: 'ช่างเทคนิค',
+                      label: 'Technician',
                       icon: Icons.build,
                       value: 'technician',
                       selected: _selectedRole == 'technician',
@@ -175,7 +175,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'สมัครสมาชิก',
+                        'Register',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

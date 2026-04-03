@@ -50,7 +50,7 @@ class KiangThaiApp extends StatelessWidget {
             return const LoginScreen();
           }
 
-          // ดึง role จาก profiles เพื่อ route ไปหน้าที่ถูกต้อง
+          // Fetch role from profiles to route to the correct screen
           return FutureBuilder<Map<String, dynamic>?>(
             future: Supabase.instance.client
                 .from('profiles')

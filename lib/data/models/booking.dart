@@ -41,13 +41,13 @@ class Booking {
   }
 
   String get statusLabel => switch (status) {
-    'pending' => 'รอช่างรับงาน',
-    'accepted' => 'ช่างรับงานแล้ว',
-    'on_the_way' => 'ช่างกำลังเดินทาง',
-    'in_progress' => 'กำลังดำเนินการ',
-    'completed' => 'เสร็จสิ้น',
-    'cancelled' => 'ยกเลิกแล้ว',
-    'rejected' => 'ถูกปฏิเสธ',
+    'pending' => 'Waiting for Technician',
+    'accepted' => 'Technician Accepted',
+    'on_the_way' => 'Technician on the Way',
+    'in_progress' => 'In Progress',
+    'completed' => 'Completed',
+    'cancelled' => 'Cancelled',
+    'rejected' => 'Rejected',
     _ => status,
   };
 

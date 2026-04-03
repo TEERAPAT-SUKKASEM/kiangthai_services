@@ -6,24 +6,24 @@ class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
 
   static const List<Map<String, dynamic>> _services = [
-    {'name': 'แอร์', 'icon': Icons.ac_unit, 'color': Colors.blue},
+    {'name': 'Air', 'icon': Icons.ac_unit, 'color': Colors.blue},
     {
-      'name': 'ไฟฟ้า',
+      'name': 'Electrical',
       'icon': Icons.electrical_services,
       'color': Colors.orange,
     },
-    {'name': 'โซล่า', 'icon': Icons.wb_sunny, 'color': Colors.yellow},
-    {'name': 'กล้องวงจรปิด', 'icon': Icons.videocam, 'color': Colors.red},
-    {'name': 'ปั๊มน้ำ', 'icon': Icons.water_drop, 'color': Colors.cyan},
+    {'name': 'Solar', 'icon': Icons.wb_sunny, 'color': Colors.yellow},
+    {'name': 'CCTV', 'icon': Icons.videocam, 'color': Colors.red},
+    {'name': 'Water Pump', 'icon': Icons.water_drop, 'color': Colors.cyan},
     {
-      'name': 'อิเล็กทรอนิกส์',
+      'name': 'Electronics',
       'icon': Icons.devices_other,
       'color': Colors.purple,
     },
   ];
 
   void _onServiceTap(BuildContext context, Map<String, dynamic> service) {
-    if (service['name'] == 'แอร์') {
+    if (service['name'] == 'Air') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AirBookingScreen()),
@@ -32,14 +32,14 @@ class CustomerHomeScreen extends StatelessWidget {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('บริการ${service['name']}'),
+          title: Text('${service['name']} Service'),
           content: const Text(
-            'บริการนี้กำลังเปิดให้บริการเร็วๆ นี้ กรุณาติดต่อเราโดยตรง',
+            'This service is coming soon. Please contact us directly.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('ตกลง'),
+              child: const Text('OK'),
             ),
           ],
         ),
@@ -51,7 +51,7 @@ class CustomerHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('เลือกบริการ'),
+        title: const Text('Select Service'),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline, size: 28),

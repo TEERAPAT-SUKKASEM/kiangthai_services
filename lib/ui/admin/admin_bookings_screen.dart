@@ -10,16 +10,16 @@ class AdminBookingsScreen extends StatefulWidget {
 }
 
 class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
-  String _filter = 'ทั้งหมด';
+  String _filter = 'all';
 
-  final _filters = ['ทั้งหมด', 'pending', 'accepted', 'completed', 'cancelled'];
+  final _filters = ['all', 'pending', 'accepted', 'completed', 'cancelled'];
 
   final _filterLabels = {
-    'ทั้งหมด': 'ทั้งหมด',
-    'pending': 'รอรับงาน',
-    'accepted': 'กำลังดำเนินการ',
-    'completed': 'เสร็จสิ้น',
-    'cancelled': 'ยกเลิก',
+    'all': 'All',
+    'pending': 'Pending',
+    'accepted': 'In Progress',
+    'completed': 'Completed',
+    'cancelled': 'Cancelled',
   };
 
   Color _statusColor(String status) => switch (status) {
@@ -34,16 +34,16 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการยกเลิก'),
-        content: const Text('แอดมินต้องการยกเลิกการจองนี้ใช่หรือไม่?'),
+        title: const Text('Confirm Cancellation'),
+        content: const Text('Cancel this booking as admin?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ไม่'),
+            child: const Text('No'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('ใช่', style: TextStyle(color: Colors.red)),
+            child: const Text('Yes', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -58,7 +58,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('การจองทั้งหมด')),
+      appBar: AppBar(title: const Text('All Bookings')),
       body: Column(
         children: [
           SingleChildScrollView(
@@ -89,12 +89,12 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final raw = snapshot.data ?? [];
-                final filtered = _filter == 'ทั้งหมด'
+                final filtered = _filter == 'all'
                     ? raw
                     : raw.where((b) => b['status'] == _filter).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('ไม่มีข้อมูล'));
+                  return const Center(child: Text('No bookings found'));
                 }
 
                 return ListView.builder(
@@ -118,14 +118,14 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${booking.contactName ?? 'ไม่ระบุ'} | ${booking.bookingDate} ${booking.bookingTime}\nสถานะ: ${booking.statusLabel}',
+                          '${booking.contactName ?? 'N/A'} | ${booking.bookingDate} ${booking.bookingTime}\nStatus: ${booking.statusLabel}',
                         ),
                         isThreeLine: true,
                         trailing: booking.status != 'cancelled' &&
                                 booking.status != 'completed'
                             ? IconButton(
                                 icon: const Icon(Icons.cancel, color: Colors.red),
-                                tooltip: 'ยกเลิก',
+                                tooltip: 'Cancel',
                                 onPressed: () =>
                                     _forceCancelBooking(booking.id),
                               )

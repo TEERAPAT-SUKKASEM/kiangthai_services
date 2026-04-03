@@ -6,7 +6,7 @@ class SharedBookingFields extends StatelessWidget {
   final List<String> bookedTimes;
   final bool isLoadingTimes;
 
-  // เพิ่ม Controller และตัวแปรใหม่สำหรับระบบ Profile
+  // Add controllers and new variables for the Profile system
   final TextEditingController nameController;
   final TextEditingController phoneController;
   final TextEditingController addressController;
@@ -63,19 +63,19 @@ class SharedBookingFields extends StatelessWidget {
       children: [
         const Divider(height: 30, thickness: 2),
         const Text(
-          'ข้อมูลสถานที่และผู้ติดต่อ',
+          'Location & Contact Info',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 15),
 
-        // 1. กล่องชื่อ และ เบอร์โทร (แบ่งซ้ายขวา)
+        // 1. Name and phone fields (side by side)
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'ชื่อ-นามสกุล',
+                  labelText: 'Full Name',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person),
                 ),
@@ -87,7 +87,7 @@ class SharedBookingFields extends StatelessWidget {
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: 'เบอร์โทรศัพท์',
+                  labelText: 'Phone Number',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.phone),
                 ),
@@ -97,16 +97,16 @@ class SharedBookingFields extends StatelessWidget {
         ),
         const SizedBox(height: 15),
 
-        // 2. Dropdown เลือกที่อยู่ (โชว์ก็ต่อเมื่อมีที่อยู่เคยเซฟไว้)
+        // 2. Address dropdown (only shown when saved addresses exist)
         if (savedAddresses.isNotEmpty) ...[
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(
-              labelText: 'เลือกที่อยู่ที่บันทึกไว้',
+              labelText: 'Select Saved Address',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.bookmark),
             ),
             isExpanded: true,
-            // ถ้าข้อความในกล่องตรงกับในลิสต์ ให้โชว์ค่านั้น ถ้าไม่ตรง (ลูกค้าพิมพ์แก้) ให้กลายเป็น null
+            // Show matched saved address as selected; null if user typed something new
             value: savedAddresses.contains(addressController.text)
                 ? addressController.text
                 : null,
@@ -121,35 +121,35 @@ class SharedBookingFields extends StatelessWidget {
           const SizedBox(height: 15),
         ],
 
-        // 3. กล่องที่อยู่ (ยืดหยุ่นตามความยาว)
+        // 3. Address field (flexible height)
         TextField(
           controller: addressController,
           minLines: 2,
           maxLines:
-              null, // ใส่ null เพื่อให้กล่องยืดลงมาเรื่อยๆ เวลากด Enter หรือพิมพ์ยาว
+              null, // null lets the field expand freely on Enter or long input
           decoration: const InputDecoration(
-            labelText: 'ที่อยู่หน้างาน (รายละเอียดเพิ่มเติม)',
+            labelText: 'Job Site Address (additional details)',
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.location_on, color: Colors.redAccent),
           ),
         ),
 
-        // 4. ปุ่มบันทึกที่อยู่ (โชว์ก็ต่อเมื่อเป็นที่อยู่ใหม่ที่ไม่เคยมีในลิสต์)
+        // 4. Save address button (shown only when a new address is entered)
         if (showSaveAddressButton)
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: onSaveAddressTap,
               icon: const Icon(Icons.save_alt),
-              label: const Text('บันทึกที่อยู่นี้ไว้ในรายการ'),
+              label: const Text('Save this address to list'),
               style: TextButton.styleFrom(foregroundColor: Colors.green),
             ),
           ),
 
-        // ----------------- ส่วนของปฏิทินและเวลา (เหมือนเดิม) -----------------
+        // ----------------- Date & time section -----------------
         const Divider(height: 30, thickness: 2),
         const Text(
-          'เลือกวันที่และเวลา',
+          'Select Date & Time',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 10),
@@ -169,7 +169,7 @@ class SharedBookingFields extends StatelessWidget {
         const SizedBox(height: 20),
 
         const Text(
-          'เวลาที่สะดวก',
+          'Preferred Time',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
@@ -191,8 +191,8 @@ class SharedBookingFields extends StatelessWidget {
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.black,
                   tabs: const [
-                    Tab(text: 'ช่วงเช้า (08:00-11:30)'),
-                    Tab(text: 'ช่วงบ่าย (13:00-16:30)'),
+                    Tab(text: 'Morning (08:00-11:30)'),
+                    Tab(text: 'Afternoon (13:00-16:30)'),
                   ],
                 ),
               ),
@@ -273,7 +273,7 @@ class SharedBookingFields extends StatelessWidget {
                     if (selectedDate == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('กรุณาเลือกวันที่ก่อนครับ'),
+                          content: Text('Please select a date first'),
                         ),
                       );
                       return;

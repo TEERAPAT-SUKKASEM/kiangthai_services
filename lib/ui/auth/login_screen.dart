@@ -32,12 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
-      // การ routing หลัง login ถูกจัดการโดย StreamBuilder ใน main.dart
+      // Routing after login is handled by StreamBuilder in main.dart
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('ผิดพลาด: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('เข้าสู่ระบบ Kiang Thai')),
+      appBar: AppBar(title: const Text('Kiang Thai — Sign In')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -65,8 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icon(Icons.email),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'กรุณากรอก Email';
-                  if (!v.contains('@')) return 'Email ไม่ถูกต้อง';
+                  if (v == null || v.trim().isEmpty) return 'Please enter your email';
+                  if (!v.contains('@')) return 'Invalid email address';
                   return null;
                 },
               ),
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icon(Icons.lock),
                 ),
                 validator: (v) =>
-                    (v == null || v.isEmpty) ? 'กรุณากรอก Password' : null,
+                    (v == null || v.isEmpty) ? 'Please enter your password' : null,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -96,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'เข้าสู่ระบบ',
+                        'Sign In',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('ยังไม่มีบัญชี?'),
+                  const Text("Don't have an account?"),
                   TextButton(
                     onPressed: () => Navigator.push(
                       context,
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         builder: (context) => const RegisterScreen(),
                       ),
                     ),
-                    child: const Text('สมัครสมาชิก'),
+                    child: const Text('Register'),
                   ),
                 ],
               ),
