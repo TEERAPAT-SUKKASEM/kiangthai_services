@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'firebase_options.dart';
 import 'ui/auth/login_screen.dart';
-import 'ui/customer/customer_home_screen.dart';
 import 'ui/customer/customer_main_screen.dart';
 import 'package:kiangthai_services/ui/technician/technician_main_screen.dart';
 
@@ -34,25 +33,52 @@ class KiangThaiApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-
       home: StreamBuilder<AuthState>(
         stream: Supabase.instance.client.auth.onAuthStateChange,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const _LoadingScreen();
           }
 
           final session = snapshot.hasData ? snapshot.data!.session : null;
 
-          if (session != null) {
-            return const TechnicianMainScreen();
-          } else {
+          if (session == null) {
             return const LoginScreen();
           }
+
+          // ดึง role จาก profiles เพื่อ route ไปหน้าที่ถูกต้อง
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: Supabase.instance.client
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .maybeSingle(),
+            builder: (context, profileSnapshot) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                return const _LoadingScreen();
+              }
+
+              final role = profileSnapshot.data?['role'] as String?;
+
+              if (role == 'technician') {
+                return const TechnicianMainScreen();
+              }
+              return const CustomerMainScreen();
+            },
+          );
         },
       ),
+    );
+  }
+}
+
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

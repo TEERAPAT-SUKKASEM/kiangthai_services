@@ -484,13 +484,30 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           final service = services[index];
           return InkWell(
             onTap: () {
-              if (service['name'] == 'แอร์')
+              if (service['name'] == 'แอร์') {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AirBookingScreen(),
                   ),
                 );
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('บริการ${service['name']}'),
+                    content: const Text(
+                      'บริการนี้กำลังเปิดให้บริการเร็วๆ นี้ กรุณาติดต่อเราโดยตรง',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('ตกลง'),
+                      ),
+                    ],
+                  ),
+                );
+              }
             },
             child: Card(
               color: service['color'].withOpacity(0.1),
