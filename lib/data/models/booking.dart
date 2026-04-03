@@ -9,6 +9,8 @@ class Booking {
   final String status;
   final String? imageUrl;
   final String createdAt;
+  final int? rating;
+  final String? reviewText;
 
   const Booking({
     required this.id,
@@ -21,6 +23,8 @@ class Booking {
     required this.status,
     this.imageUrl,
     required this.createdAt,
+    this.rating,
+    this.reviewText,
   });
 
   factory Booking.fromMap(Map<String, dynamic> map) {
@@ -37,6 +41,8 @@ class Booking {
       status: map['status'] as String? ?? 'pending',
       imageUrl: map['image_url'] as String?,
       createdAt: map['created_at'] as String? ?? '',
+      rating: map['rating'] as int?,
+      reviewText: map['review_text'] as String?,
     );
   }
 

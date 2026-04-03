@@ -16,6 +16,107 @@ class MyBookingsScreen extends StatelessWidget {
     _ => Colors.grey,
   };
 
+  Future<void> _submitRating(
+    BuildContext context,
+    dynamic bookingId,
+    int rating,
+    String reviewText,
+  ) async {
+    try {
+      await Supabase.instance.client.from('bookings').update({
+        'rating': rating,
+        'review_text': reviewText.isEmpty ? null : reviewText,
+      }).eq('id', bookingId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Thank you for your review!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save rating: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showRatingDialog(BuildContext context, dynamic bookingId) async {
+    int selectedRating = 0;
+    final reviewController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Rate this Service'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('How was your experience?'),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) {
+                  final star = i + 1;
+                  return IconButton(
+                    icon: Icon(
+                      star <= selectedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 36,
+                    ),
+                    onPressed: () => setDialogState(() => selectedRating = star),
+                  );
+                }),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reviewController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Leave a comment (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: selectedRating == 0
+                  ? null
+                  : () {
+                      Navigator.pop(dialogContext);
+                      _submitRating(
+                        context,
+                        bookingId,
+                        selectedRating,
+                        reviewController.text.trim(),
+                      );
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    reviewController.dispose();
+  }
+
   Future<void> _showCancelDialog(
     BuildContext context,
     dynamic bookingId,
@@ -217,7 +318,7 @@ class MyBookingsScreen extends StatelessWidget {
                                 ),
                               ),
 
-                            if (booking.status == 'accepted') ...[
+                            if (booking.isActive) ...[
                               const Divider(height: 20),
                               Align(
                                 alignment: Alignment.centerRight,
@@ -265,6 +366,51 @@ class MyBookingsScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                            ],
+                            if (booking.status == 'completed') ...[
+                              const Divider(height: 20),
+                              if (booking.rating == null)
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    onPressed: () => _showRatingDialog(
+                                        context, booking.id),
+                                    icon: const Icon(Icons.star_border,
+                                        color: Colors.amber),
+                                    label: const Text(
+                                      'Rate this Service',
+                                      style: TextStyle(color: Colors.amber),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Row(
+                                  children: [
+                                    ...List.generate(
+                                      5,
+                                      (i) => Icon(
+                                        i < booking.rating!
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        color: Colors.amber,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    if (booking.reviewText != null &&
+                                        booking.reviewText!.isNotEmpty)
+                                      Expanded(
+                                        child: Text(
+                                          booking.reviewText!,
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                             ],
                           ],
                         ),

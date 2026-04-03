@@ -160,7 +160,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           .from('bookings')
           .select('booking_time')
           .eq('booking_date', dateStr)
-          .eq('service_type', 'Air')
+          .eq('service_type', 'AC')
           .neq('status', 'cancelled');
       setState(() {
         _bookedTimes = response
@@ -418,7 +418,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     .select('id')
                     .eq('booking_date', dateStr)
                     .eq('booking_time', timeStr)
-                    .eq('service_type', 'Air')
+                    .eq('service_type', 'AC')
                     .neq('status', 'cancelled');
                 if (existingBookings.isNotEmpty) {
                   if (mounted) {
@@ -458,7 +458,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 // Pack contact info into JSONB so technician sees exact details
                 await Supabase.instance.client.from('bookings').insert({
                   'customer_id': user.id,
-                  'service_type': 'Air',
+                  'service_type': 'AC',
                   'service_details': {
                     'sub_type': _selectedService,
                     'btu': _selectedService == 'AC Cleaning' ? _selectedBtu : null,

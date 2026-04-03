@@ -6,7 +6,7 @@ class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
 
   static const List<Map<String, dynamic>> _services = [
-    {'name': 'Air', 'icon': Icons.ac_unit, 'color': Colors.blue},
+    {'name': 'AC', 'icon': Icons.ac_unit, 'color': Colors.blue},
     {
       'name': 'Electrical',
       'icon': Icons.electrical_services,
@@ -23,7 +23,7 @@ class CustomerHomeScreen extends StatelessWidget {
   ];
 
   void _onServiceTap(BuildContext context, Map<String, dynamic> service) {
-    if (service['name'] == 'Air') {
+    if (service['name'] == 'AC') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AirBookingScreen()),
