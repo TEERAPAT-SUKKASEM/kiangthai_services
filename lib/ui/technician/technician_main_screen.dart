@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../customer/profile_settings_screen.dart';
 
 class TechnicianMainScreen extends StatefulWidget {
   const TechnicianMainScreen({super.key});
@@ -9,8 +10,8 @@ class TechnicianMainScreen extends StatefulWidget {
 }
 
 class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
-  // 🌟 พระเอกของเรา: ตัวเก็บ ID ของงานที่กำลังกดรับ/ปิด (เพื่อเอาไปซ่อนทันที)
   final Set<dynamic> _processingJobs = {};
+  bool _showHistory = false;
 
   // ==========================================
   // ฟังก์ชัน: ช่างกด "รับงาน"
@@ -46,6 +47,58 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
             backgroundColor: Colors.red,
           ),
         );
+    }
+  }
+
+  // ==========================================
+  // ฟังก์ชัน: ช่างกด "ปฏิเสธงาน"
+  // ==========================================
+  Future<void> _rejectJob(dynamic bookingId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ยืนยันการปฏิเสธงาน'),
+        content: const Text('คุณแน่ใจหรือไม่ว่าต้องการปฏิเสธงานนี้?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'ปฏิเสธงาน',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _processingJobs.add(bookingId));
+    try {
+      await Supabase.instance.client
+          .from('bookings')
+          .update({'status': 'rejected'})
+          .eq('id', bookingId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ปฏิเสธงานแล้ว')),
+        );
+      }
+    } catch (e) {
+      setState(() => _processingJobs.remove(bookingId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -219,21 +272,38 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
             const SizedBox(height: 15),
             if (!isMyJob) ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      _acceptJob(booking['id']), // ไม่ต้องส่ง context แล้ว
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _acceptJob(booking['id']),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.pan_tool),
+                      label: const Text(
+                        'รับงาน',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
-                  icon: const Icon(Icons.pan_tool),
-                  label: const Text(
-                    'กดรับงานนี้',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _rejectJob(booking['id']),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text(
+                        'ปฏิเสธ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ] else if (booking['status'] == 'accepted') ...[
               SizedBox(
@@ -269,12 +339,13 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
           title: const Text('Kiang Thai Service (ช่าง)'),
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.red),
-              onPressed: () async {
-                await Supabase.instance.client.auth.signOut();
-                if (context.mounted)
-                  Navigator.pushReplacementNamed(context, '/login');
-              },
+              icon: const Icon(Icons.person_outline),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileSettingsScreen(),
+                ),
+              ),
             ),
           ],
           bottom: const TabBar(
@@ -325,26 +396,47 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting)
                         return const Center(child: CircularProgressIndicator());
-                      final bookings = snapshot.data;
-                      if (bookings == null || bookings.isEmpty)
-                        return const Center(
-                          child: Text('คุณยังไม่มีงานที่รับผิดชอบครับ'),
-                        );
+                      final bookings = snapshot.data ?? [];
 
-                      // ดึงเฉพาะงานที่ยังไม่เสร็จสิ้นมาโชว์ (หรืออยากโชว์ completed ด้วยก็ได้)
-                      final activeBookings = bookings
-                          .where((b) => b['status'] != 'completed')
-                          .toList();
-                      if (activeBookings.isEmpty)
-                        return const Center(
-                          child: Text('เคลียร์งานหมดแล้ว ยอดเยี่ยมมากครับ!'),
-                        );
+                      final displayed = _showHistory
+                          ? bookings
+                          : bookings
+                              .where((b) => b['status'] == 'accepted')
+                              .toList();
 
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(10),
-                        itemCount: activeBookings.length,
-                        itemBuilder: (context, index) =>
-                            _buildJobCard(activeBookings[index], true),
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                FilterChip(
+                                  label: const Text('แสดงประวัติ'),
+                                  selected: _showHistory,
+                                  onSelected: (val) =>
+                                      setState(() => _showHistory = val),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: displayed.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      _showHistory
+                                          ? 'ยังไม่มีประวัติงาน'
+                                          : 'ไม่มีงานที่กำลังดำเนินการ',
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.all(10),
+                                    itemCount: displayed.length,
+                                    itemBuilder: (context, index) =>
+                                        _buildJobCard(displayed[index], true),
+                                  ),
+                          ),
+                        ],
                       );
                     },
                   ),

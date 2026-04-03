@@ -213,6 +213,27 @@ class SharedBookingFields extends StatelessWidget {
     );
   }
 
+  bool _isPastSlot(String slot) {
+    if (selectedDate == null) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+    );
+    if (selected != today) return false;
+    final parts = slot.split(':');
+    final slotDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+    return slotDateTime.isBefore(now);
+  }
+
   Widget _buildTimeGrid(List<String> timeSlots, BuildContext context) {
     if (selectedDate != null && isLoadingTimes)
       return const Center(child: CircularProgressIndicator());
@@ -229,7 +250,7 @@ class SharedBookingFields extends StatelessWidget {
       itemCount: timeSlots.length,
       itemBuilder: (context, index) {
         final slot = timeSlots[index];
-        final isBooked = bookedTimes.contains(slot);
+        final isBooked = bookedTimes.contains(slot) || _isPastSlot(slot);
         final isSelected = selectedTime == slot;
 
         return ChoiceChip(

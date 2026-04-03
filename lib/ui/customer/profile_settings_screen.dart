@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/models/profile.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -12,9 +13,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  List<String> _savedAddresses = []; // เก็บลิสต์ที่อยู่
-  bool _isLoading = true; // สถานะตอนกำลังโหลดข้อมูลตอนเปิดหน้า
-  bool _isSaving = false; // สถานะตอนกำลังกดปุ่มเซฟ
+  List<String> _savedAddresses = [];
+  bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -29,9 +30,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     super.dispose();
   }
 
-  // ==========================================
-  // 1. ดึงข้อมูลจากตาราง profiles
-  // ==========================================
   Future<void> _fetchProfileData() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -43,26 +41,23 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           .eq('id', user.id)
           .single();
 
+      final profile = Profile.fromMap(data);
       setState(() {
-        _nameController.text = data['full_name'] ?? '';
-        _phoneController.text = data['phone_number'] ?? '';
-        if (data['saved_addresses'] != null) {
-          _savedAddresses = List<String>.from(data['saved_addresses']);
-        }
+        _nameController.text = profile.fullName;
+        _phoneController.text = profile.phoneNumber;
+        _savedAddresses = List<String>.from(profile.savedAddresses);
         _isLoading = false;
       });
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('ดึงข้อมูลล้มเหลว: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ดึงข้อมูลล้มเหลว: $e')),
+        );
+      }
       setState(() => _isLoading = false);
     }
   }
 
-  // ==========================================
-  // 2. บันทึกข้อมูลกลับไปที่ตาราง profiles
-  // ==========================================
   Future<void> _saveProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -70,15 +65,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'full_name': _nameController.text.trim(),
-            'phone_number': _phoneController.text.trim(),
-            'saved_addresses':
-                _savedAddresses, // โยนลิสต์ที่อยู่ทั้งก้อนกลับไปทับของเดิม
-          })
-          .eq('id', user.id);
+      await Supabase.instance.client.from('profiles').update({
+        'full_name': _nameController.text.trim(),
+        'phone_number': _phoneController.text.trim(),
+        'saved_addresses': _savedAddresses,
+      }).eq('id', user.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -89,18 +80,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         );
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('บันทึกข้อมูลล้มเหลว: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('บันทึกข้อมูลล้มเหลว: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  // ==========================================
-  // 3. กล่อง Dialog สำหรับ เพิ่ม/แก้ไข ที่อยู่
-  // ==========================================
   Future<void> _showAddressDialog({int? index}) async {
     final isEditing = index != null;
     final addressController = TextEditingController(
@@ -115,7 +104,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           controller: addressController,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'กรอกที่อยู่ของคุณ (บ้านเลขที่, ซอย, ตำบล)',
+            hintText: 'กรอกที่อยู่ของคุณ',
             border: OutlineInputBorder(),
           ),
         ),
@@ -137,21 +126,17 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
     );
 
-    // ถ้าพิมพ์เสร็จแล้วกดตกลง
     if (result != null && result.isNotEmpty) {
       setState(() {
         if (isEditing) {
-          _savedAddresses[index] = result; // แก้ไขของเดิม
+          _savedAddresses[index] = result;
         } else {
-          _savedAddresses.add(result); // เพิ่มของใหม่
+          _savedAddresses.add(result);
         }
       });
     }
   }
 
-  // ==========================================
-  // 4. กล่อง Dialog ยืนยันการลบที่อยู่
-  // ==========================================
   Future<void> _confirmDeleteAddress(int index) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -175,10 +160,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
 
     if (confirm == true) {
-      setState(() {
-        _savedAddresses.removeAt(index);
-      });
+      setState(() => _savedAddresses.removeAt(index));
     }
+  }
+
+  Future<void> _logout() async {
+    await Supabase.instance.client.auth.signOut();
+    // main.dart's StreamBuilder handles navigation back to LoginScreen
   }
 
   @override
@@ -190,7 +178,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // ----- ส่วนที่ 1: ข้อมูลส่วนตัว -----
                 const Text(
                   'ข้อมูลส่วนตัว',
                   style: TextStyle(
@@ -221,7 +208,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
                 const Divider(height: 40, thickness: 2),
 
-                // ----- ส่วนที่ 2: จัดการที่อยู่ -----
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -234,8 +220,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       ),
                     ),
                     TextButton.icon(
-                      onPressed: () =>
-                          _showAddressDialog(), // กดเพื่อเพิ่มที่อยู่ใหม่
+                      onPressed: _showAddressDialog,
                       icon: const Icon(Icons.add),
                       label: const Text('เพิ่มที่อยู่'),
                     ),
@@ -243,7 +228,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // แสดงลิสต์ที่อยู่
                 if (_savedAddresses.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(20.0),
@@ -257,8 +241,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 else
                   ListView.builder(
                     shrinkWrap: true,
-                    physics:
-                        const NeverScrollableScrollPhysics(), // ปิดการเลื่อนซ้อนกัน
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: _savedAddresses.length,
                     itemBuilder: (context, index) {
                       return Card(
@@ -281,9 +264,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                   Icons.edit,
                                   color: Colors.orange,
                                 ),
-                                onPressed: () => _showAddressDialog(
-                                  index: index,
-                                ), // กดเพื่อแก้ไข
+                                onPressed: () =>
+                                    _showAddressDialog(index: index),
                               ),
                               IconButton(
                                 icon: const Icon(
@@ -291,7 +273,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                   color: Colors.red,
                                 ),
                                 onPressed: () =>
-                                    _confirmDeleteAddress(index), // กดเพื่อลบ
+                                    _confirmDeleteAddress(index),
                               ),
                             ],
                           ),
@@ -300,13 +282,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     },
                   ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
-                // ----- ปุ่มบันทึกข้อมูล -----
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(55),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -323,6 +304,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           ),
                         ),
                 ),
+
+                const SizedBox(height: 12),
+
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    side: const BorderSide(color: Colors.red),
+                    foregroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('ออกจากระบบ'),
+                  onPressed: _logout,
+                ),
+
+                const SizedBox(height: 20),
               ],
             ),
     );
