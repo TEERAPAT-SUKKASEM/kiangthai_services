@@ -84,12 +84,22 @@ class CustomerHomeScreen extends StatelessWidget {
               ),
             ),
             const SliverToBoxAdapter(child: _PromoBanner()),
+            const SliverToBoxAdapter(child: _TrustStrip()),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
               sliver: SliverToBoxAdapter(
-                child: Text(
-                  'Services',
-                  style: Theme.of(context).textTheme.titleMedium,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Our Services',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      '${_services.length} available',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -192,6 +202,63 @@ class _ProfileButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         child: const Icon(Icons.person_outline_rounded, size: 22, color: AppColors.textPrimary),
+      ),
+    );
+  }
+}
+
+class _TrustStrip extends StatelessWidget {
+  const _TrustStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+      child: Row(
+        children: const [
+          Expanded(child: _TrustStat(icon: Icons.verified_rounded, label: 'Verified', value: '100+')),
+          SizedBox(width: 10),
+          Expanded(child: _TrustStat(icon: Icons.star_rounded, label: 'Rating', value: '4.9')),
+          SizedBox(width: 10),
+          Expanded(child: _TrustStat(icon: Icons.bolt_rounded, label: 'Response', value: '<30m')),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrustStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _TrustStat({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.brand, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 15,
+                  letterSpacing: -0.2,
+                ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+          ),
+        ],
       ),
     );
   }
