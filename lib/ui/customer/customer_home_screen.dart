@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'air_booking_screen.dart';
+import 'service_booking_screen.dart';
 import 'profile_settings_screen.dart';
 
 class CustomerHomeScreen extends StatelessWidget {
@@ -22,28 +23,31 @@ class CustomerHomeScreen extends StatelessWidget {
     },
   ];
 
+  static final Map<String, ServiceConfig> _serviceConfigs = {
+    'Electrical': electricalConfig,
+    'Solar': solarConfig,
+    'CCTV': cctvConfig,
+    'Water Pump': waterPumpConfig,
+    'Electronics': electronicsConfig,
+  };
+
   void _onServiceTap(BuildContext context, Map<String, dynamic> service) {
-    if (service['name'] == 'AC') {
+    final name = service['name'] as String;
+    if (name == 'AC') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AirBookingScreen()),
       );
     } else {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('${service['name']} Service'),
-          content: const Text(
-            'This service is coming soon. Please contact us directly.',
+      final config = _serviceConfigs[name];
+      if (config != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ServiceBookingScreen(config: config),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+        );
+      }
     }
   }
 
