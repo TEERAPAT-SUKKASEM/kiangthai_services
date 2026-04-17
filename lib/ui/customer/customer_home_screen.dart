@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/theme.dart';
 import 'air_booking_screen.dart';
 import 'service_booking_screen.dart';
 import 'profile_settings_screen.dart';
@@ -6,21 +8,13 @@ import 'profile_settings_screen.dart';
 class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
 
-  static const List<Map<String, dynamic>> _services = [
-    {'name': 'AC', 'icon': Icons.ac_unit, 'color': Colors.blue},
-    {
-      'name': 'Electrical',
-      'icon': Icons.electrical_services,
-      'color': Colors.orange,
-    },
-    {'name': 'Solar', 'icon': Icons.wb_sunny, 'color': Colors.yellow},
-    {'name': 'CCTV', 'icon': Icons.videocam, 'color': Colors.red},
-    {'name': 'Water Pump', 'icon': Icons.water_drop, 'color': Colors.cyan},
-    {
-      'name': 'Electronics',
-      'icon': Icons.devices_other,
-      'color': Colors.purple,
-    },
+  static const List<_ServiceTile> _services = [
+    _ServiceTile(name: 'AC', icon: Icons.ac_unit_rounded, tint: Color(0xFF0EA5E9)),
+    _ServiceTile(name: 'Electrical', icon: Icons.electrical_services_rounded, tint: Color(0xFFF59E0B)),
+    _ServiceTile(name: 'Solar', icon: Icons.wb_sunny_rounded, tint: Color(0xFFF97316)),
+    _ServiceTile(name: 'CCTV', icon: Icons.videocam_rounded, tint: Color(0xFFEF4444)),
+    _ServiceTile(name: 'Water Pump', icon: Icons.water_drop_rounded, tint: Color(0xFF06B6D4)),
+    _ServiceTile(name: 'Electronics', icon: Icons.devices_other_rounded, tint: Color(0xFF8B5CF6)),
   ];
 
   static final Map<String, ServiceConfig> _serviceConfigs = {
@@ -31,21 +25,15 @@ class CustomerHomeScreen extends StatelessWidget {
     'Electronics': electronicsConfig,
   };
 
-  void _onServiceTap(BuildContext context, Map<String, dynamic> service) {
-    final name = service['name'] as String;
-    if (name == 'AC') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AirBookingScreen()),
-      );
+  void _onServiceTap(BuildContext context, _ServiceTile service) {
+    if (service.name == 'AC') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const AirBookingScreen()));
     } else {
-      final config = _serviceConfigs[name];
+      final config = _serviceConfigs[service.name];
       if (config != null) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => ServiceBookingScreen(config: config),
-          ),
+          MaterialPageRoute(builder: (_) => ServiceBookingScreen(config: config)),
         );
       }
     }
@@ -53,57 +41,214 @@ class CustomerHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final greetingName = (user?.userMetadata?['full_name'] as String?)?.split(' ').first
+        ?? user?.email?.split('@').first
+        ?? 'there';
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Service'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline, size: 28),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ProfileSettingsScreen(),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hello, $greetingName',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'What do you need today?',
+                            style: Theme.of(context).textTheme.displayMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _ProfileButton(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-        ],
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+            const SliverToBoxAdapter(child: _PromoBanner()),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              sliver: SliverToBoxAdapter(
+                child: Text(
+                  'Services',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 1.05,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final s = _services[index];
+                    return _ServiceCard(tile: s, onTap: () => _onServiceTap(context, s));
+                  },
+                  childCount: _services.length,
+                ),
+              ),
+            ),
+          ],
         ),
-        itemCount: _services.length,
-        itemBuilder: (context, index) {
-          final service = _services[index];
-          return InkWell(
-            onTap: () => _onServiceTap(context, service),
-            child: Card(
-              color: (service['color'] as Color).withValues(alpha: 0.1),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    service['icon'] as IconData,
-                    size: 50,
-                    color: service['color'] as Color,
+      ),
+    );
+  }
+}
+
+class _ServiceTile {
+  final String name;
+  final IconData icon;
+  final Color tint;
+  const _ServiceTile({required this.name, required this.icon, required this.tint});
+}
+
+class _ServiceCard extends StatelessWidget {
+  final _ServiceTile tile;
+  final VoidCallback onTap;
+  const _ServiceCard({required this.tile, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.tint(tile.tint, 0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 10),
+                  child: Icon(tile.icon, color: tile.tint, size: 24),
+                ),
+                const Spacer(),
+                Text(tile.name, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  'Book now',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ProfileButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.fieldFill,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(Icons.person_outline_rounded, size: 22, color: AppColors.textPrimary),
+      ),
+    );
+  }
+}
+
+class _PromoBanner extends StatelessWidget {
+  const _PromoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.brand, AppColors.brandDark],
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    service['name'] as String,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    'Trusted home services',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Book verified technicians in minutes.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
                   ),
                 ],
               ),
             ),
-          );
-        },
+            const SizedBox(width: 12),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.handyman_rounded, color: Colors.white, size: 28),
+            ),
+          ],
+        ),
       ),
     );
   }

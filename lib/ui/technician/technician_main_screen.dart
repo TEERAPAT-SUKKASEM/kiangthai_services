@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/theme.dart';
 import '../customer/profile_settings_screen.dart';
 import '../../data/models/booking.dart';
 import '../chat/chat_screen.dart';
@@ -32,20 +33,14 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Job accepted!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Job accepted')),
         );
     } catch (e) {
       // On failure, restore the card
       setState(() => _processingJobs.remove(bookingId));
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e')),
         );
     }
   }
@@ -55,19 +50,17 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Rejection'),
-        content: const Text('Are you sure you want to reject this job?'),
+        title: const Text('Reject this job?'),
+        content: const Text('You won\'t be able to undo this action.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Reject Job',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.rejected),
+            child: const Text('Reject'),
           ),
         ],
       ),
@@ -91,10 +84,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       setState(() => _processingJobs.remove(bookingId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -107,17 +97,17 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Confirm Job Completion'),
-          content: const Text('Mark this job as fully completed?'),
+          title: const Text('Complete this job?'),
+          content: const Text('Mark this job as fully completed.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.completed),
+              child: const Text('Complete'),
             ),
           ],
         ),
@@ -140,20 +130,14 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
           _ => 'Status updated',
         };
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: isCompleting ? Colors.green : Colors.blueAccent,
-          ),
+          SnackBar(content: Text(msg)),
         );
       }
     } catch (e) {
       if (isCompleting) setState(() => _processingJobs.remove(bookingId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -179,37 +163,37 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundColor:
-                          isDone ? Colors.blueAccent : Colors.grey.shade300,
-                      child: Icon(
-                        isDone ? Icons.check : Icons.circle,
-                        size: 14,
-                        color: Colors.white,
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: isDone ? AppColors.brand : AppColors.fieldFill,
+                        shape: BoxShape.circle,
                       ),
+                      child: isDone
+                          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                          : null,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       stages[i].$2,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 10,
-                        color: isDone ? Colors.blueAccent : Colors.grey,
-                        fontWeight: isDone
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontSize: 10.5,
+                        color: isDone ? AppColors.brand : AppColors.textMuted,
+                        fontWeight: isDone ? FontWeight.w600 : FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
               if (!isLast)
-                Expanded(
-                  child: Divider(
-                    thickness: 2,
-                    color: i < currentIndex
-                        ? Colors.blueAccent
-                        : Colors.grey.shade300,
+                SizedBox(
+                  width: 20,
+                  child: Container(
+                    height: 2,
+                    margin: const EdgeInsets.only(bottom: 22),
+                    color: i < currentIndex ? AppColors.brand : AppColors.border,
                   ),
                 ),
             ],
@@ -223,34 +207,24 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   Widget _buildNextStageButton(Booking booking) {
     final (String label, String nextStatus, Color color) =
         switch (booking.status) {
-      'accepted' => ('On My Way', 'on_the_way', Colors.orange),
-      'on_the_way' => ('Arrived at Site', 'in_progress', Colors.blue),
-      'in_progress' => ('Close Job', 'completed', Colors.green),
-      _ => ('', '', Colors.grey),
+      'accepted' => ('On My Way', 'on_the_way', AppColors.onTheWay),
+      'on_the_way' => ('Arrived', 'in_progress', AppColors.inProgress),
+      'in_progress' => ('Close Job', 'completed', AppColors.completed),
+      _ => ('', '', AppColors.textMuted),
     };
 
     if (label.isEmpty) return const SizedBox.shrink();
 
     return ElevatedButton.icon(
       onPressed: () => _updateStage(booking.id, nextStatus),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-      ),
+      style: ElevatedButton.styleFrom(backgroundColor: color),
       icon: Icon(
-        nextStatus == 'completed' ? Icons.check_circle : Icons.arrow_forward,
+        nextStatus == 'completed' ? Icons.check_rounded : Icons.arrow_forward_rounded,
         size: 18,
       ),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      label: Text(label),
     );
   }
-
-  Color _chipColor(String status) => switch (status) {
-    'pending' => Colors.orange,
-    'accepted' => Colors.blue,
-    'completed' => Colors.green,
-    _ => Colors.grey,
-  };
 
   // Build job detail card
   Widget _buildJobCard(Map<String, dynamic> raw, bool isMyJob) {
@@ -260,95 +234,77 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       return const SizedBox.shrink();
     }
 
+    final statusColor = AppColors.forStatus(booking.status);
+
     return Card(
-      elevation: 3,
-      margin: const EdgeInsets.only(bottom: 15),
+      margin: const EdgeInsets.only(bottom: 14),
       child: Padding(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Job: ${booking.serviceType} (${booking.subType ?? ''})',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Chip(
-                  label: Text(
-                    booking.statusLabel,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  backgroundColor: _chipColor(booking.status),
-                ),
-              ],
-            ),
-            const Divider(),
-            Row(
-              children: [
-                const Icon(Icons.calendar_month, size: 18, color: Colors.grey),
-                const SizedBox(width: 5),
-                Text('Date: ${booking.bookingDate}'),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                const Icon(Icons.access_time, size: 18, color: Colors.grey),
-                const SizedBox(width: 5),
-                Text('Time: ${booking.bookingTime}'),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                const Icon(Icons.person, size: 18, color: Colors.grey),
-                const SizedBox(width: 5),
-                Text('Customer: ${booking.contactName ?? 'N/A'}'),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                const Icon(Icons.phone, size: 18, color: Colors.grey),
-                const SizedBox(width: 5),
-                Text('Phone: ${booking.contactPhone ?? 'N/A'}'),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.location_on, size: 18, color: Colors.redAccent),
-                const SizedBox(width: 5),
-                Expanded(child: Text('Address: ${booking.address ?? 'N/A'}')),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        booking.serviceType,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      if ((booking.subType ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          booking.subType!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                _StatusPill(label: booking.statusLabel, color: statusColor),
               ],
+            ),
+            const SizedBox(height: 14),
+            _InfoRow(icon: Icons.event_rounded, text: booking.bookingDate),
+            _InfoRow(icon: Icons.schedule_rounded, text: booking.bookingTime),
+            _InfoRow(icon: Icons.person_outline_rounded, text: booking.contactName ?? 'N/A'),
+            _InfoRow(icon: Icons.phone_outlined, text: booking.contactPhone ?? 'N/A'),
+            _InfoRow(
+              icon: Icons.location_on_outlined,
+              text: booking.address ?? 'N/A',
+              multiline: true,
             ),
 
             if (booking.btu != null || booking.symptoms != null) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.fieldFill,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (booking.btu != null)
-                      Text('Size: ${booking.btu} | Units: ${booking.count}'),
-                    if (booking.symptoms != null)
                       Text(
-                        'Issue: ${booking.symptoms}',
-                        style: const TextStyle(color: Colors.red),
+                        '${booking.btu} BTU · ${booking.count} unit(s)',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
+                    if (booking.symptoms != null) ...[
+                      if (booking.btu != null) const SizedBox(height: 4),
+                      Text(
+                        booking.symptoms!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -356,9 +312,9 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
             if (booking.imageUrl != null && booking.imageUrl!.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.only(top: 12),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   child: Image.network(
                     booking.imageUrl!,
                     height: 150,
@@ -368,44 +324,35 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                 ),
               ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 16),
             if (!isMyJob) ...[
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _acceptJob(booking.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        foregroundColor: Colors.white,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _rejectJob(booking.id),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.rejected,
+                        side: const BorderSide(color: AppColors.border),
                       ),
-                      icon: const Icon(Icons.pan_tool),
-                      label: const Text(
-                        'Accept',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text('Reject'),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _rejectJob(booking.id),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                      ),
-                      icon: const Icon(Icons.cancel_outlined),
-                      label: const Text(
-                        'Reject',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _acceptJob(booking.id),
+                      icon: const Icon(Icons.check_rounded, size: 18),
+                      label: const Text('Accept Job'),
                     ),
                   ),
                 ],
               ),
             ] else if (booking.isActive) ...[
               _buildStageIndicator(booking.status),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
@@ -425,12 +372,12 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.chat),
+                      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
                       label: const Text('Chat'),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildNextStageButton(booking)),
+                  Expanded(flex: 2, child: _buildNextStageButton(booking)),
                 ],
               ),
             ],
@@ -448,10 +395,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Kiang Thai Service (Technician)'),
+          title: const Text('Technician'),
           actions: [
             IconButton(
-              icon: const Icon(Icons.person_outline),
+              icon: const Icon(Icons.person_outline_rounded),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -459,14 +406,12 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                 ),
               ),
             ),
+            const SizedBox(width: 8),
           ],
           bottom: const TabBar(
-            labelColor: Colors.blueAccent,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.blueAccent,
             tabs: [
-              Tab(icon: Icon(Icons.new_releases), text: 'New Jobs'),
-              Tab(icon: Icon(Icons.engineering), text: 'My Jobs'),
+              Tab(text: 'New Jobs'),
+              Tab(text: 'My Jobs'),
             ],
           ),
         ),
@@ -560,6 +505,71 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _StatusPill({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.tint(color, 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final bool multiline;
+  const _InfoRow({required this.icon, required this.text, this.multiline = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: multiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 17, color: AppColors.textMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

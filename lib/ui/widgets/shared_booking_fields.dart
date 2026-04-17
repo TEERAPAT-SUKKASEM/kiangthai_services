@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
 
 class SharedBookingFields extends StatelessWidget {
   final DateTime? selectedDate;
@@ -61,14 +62,10 @@ class SharedBookingFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(height: 30, thickness: 2),
-        const Text(
-          'Location & Contact Info',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 15),
+        const SizedBox(height: 24),
+        _SectionTitle('Location & Contact'),
+        const SizedBox(height: 12),
 
-        // 1. Name and phone fields (side by side)
         Row(
           children: [
             Expanded(
@@ -76,8 +73,7 @@ class SharedBookingFields extends StatelessWidget {
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Full Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+                  prefixIcon: Icon(Icons.person_outline_rounded),
                 ),
               ),
             ),
@@ -87,26 +83,22 @@ class SharedBookingFields extends StatelessWidget {
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
+                  labelText: 'Phone',
+                  prefixIcon: Icon(Icons.phone_outlined),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 15),
+        const SizedBox(height: 12),
 
-        // 2. Address dropdown (only shown when saved addresses exist)
         if (savedAddresses.isNotEmpty) ...[
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(
-              labelText: 'Select Saved Address',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.bookmark),
+              labelText: 'Saved address',
+              prefixIcon: Icon(Icons.bookmark_outline_rounded),
             ),
             isExpanded: true,
-            // Show matched saved address as selected; null if user typed something new
             value: savedAddresses.contains(addressController.text)
                 ? addressController.text
                 : null,
@@ -118,46 +110,42 @@ class SharedBookingFields extends StatelessWidget {
             }).toList(),
             onChanged: onAddressSelected,
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 12),
         ],
 
-        // 3. Address field (flexible height)
         TextField(
           controller: addressController,
           minLines: 2,
-          maxLines:
-              null, // null lets the field expand freely on Enter or long input
+          maxLines: null,
           decoration: const InputDecoration(
-            labelText: 'Job Site Address (additional details)',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.location_on, color: Colors.redAccent),
+            labelText: 'Job site address',
+            prefixIcon: Icon(Icons.location_on_outlined),
           ),
         ),
 
-        // 4. Save address button (shown only when a new address is entered)
         if (showSaveAddressButton)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: onSaveAddressTap,
-              icon: const Icon(Icons.save_alt),
-              label: const Text('Save this address to list'),
-              style: TextButton.styleFrom(foregroundColor: Colors.green),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onSaveAddressTap,
+                icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                label: const Text('Save address'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.completed),
+              ),
             ),
           ),
 
-        // ----------------- Date & time section -----------------
-        const Divider(height: 30, thickness: 2),
-        const Text(
-          'Select Date & Time',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 24),
+        _SectionTitle('Select Date & Time'),
+        const SizedBox(height: 12),
 
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(10),
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: CalendarDatePicker(
             initialDate: selectedDate ?? DateTime.now(),
@@ -168,9 +156,9 @@ class SharedBookingFields extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        const Text(
+        Text(
           'Preferred Time',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 10),
 
@@ -179,24 +167,32 @@ class SharedBookingFields extends StatelessWidget {
           child: Column(
             children: [
               Container(
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.fieldFill,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: TabBar(
                   indicator: BoxDecoration(
-                    color: Colors.blueAccent,
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1)),
+                    ],
                   ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.black,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelColor: AppColors.textPrimary,
+                  unselectedLabelColor: AppColors.textMuted,
+                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                   tabs: const [
-                    Tab(text: 'Morning (08:00-11:30)'),
-                    Tab(text: 'Afternoon (13:00-16:30)'),
+                    Tab(text: 'Morning'),
+                    Tab(text: 'Afternoon'),
                   ],
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 16),
               SizedBox(
                 height: 260,
                 child: TabBarView(
@@ -253,42 +249,56 @@ class SharedBookingFields extends StatelessWidget {
         final isBooked = bookedTimes.contains(slot) || _isPastSlot(slot);
         final isSelected = selectedTime == slot;
 
-        return ChoiceChip(
-          label: Text(
-            slot,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isBooked
-                  ? Colors.grey
-                  : (isSelected ? Colors.white : Colors.black),
-              decoration: isBooked ? TextDecoration.lineThrough : null,
-            ),
-          ),
-          selected: isSelected,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          onSelected: isBooked
+        return InkWell(
+          onTap: isBooked
               ? null
-              : (selected) {
-                  if (selected) {
-                    if (selectedDate == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please select a date first'),
-                        ),
-                      );
-                      return;
-                    }
-                    onTimeSelected(slot);
+              : () {
+                  if (selectedDate == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please select a date first')),
+                    );
+                    return;
                   }
+                  onTimeSelected(slot);
                 },
-          selectedColor: Colors.blueAccent,
-          backgroundColor: Colors.white,
-          disabledColor: Colors.grey.shade200,
-          side: BorderSide(
-            color: isBooked ? Colors.grey.shade300 : Colors.blueAccent,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.brand
+                  : (isBooked ? AppColors.fieldFill : AppColors.surface),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.brand
+                    : (isBooked ? AppColors.border : AppColors.border),
+              ),
+            ),
+            child: Text(
+              slot,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: isBooked
+                    ? AppColors.textMuted
+                    : (isSelected ? Colors.white : AppColors.textPrimary),
+                decoration: isBooked ? TextDecoration.lineThrough : null,
+              ),
+            ),
           ),
         );
       },
     );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String text;
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: Theme.of(context).textTheme.titleMedium);
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'ui/auth/login_screen.dart';
@@ -34,10 +35,7 @@ class KiangThaiApp extends StatelessWidget {
     return MaterialApp(
       title: 'Kiang Thai Service',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        useMaterial3: true,
-      ),
+      theme: buildAppTheme(),
       builder: (context, child) {
         if (!kIsWeb) return child ?? const SizedBox.shrink();
         return ColoredBox(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/theme.dart';
 import 'customer_home_screen.dart';
 import 'my_bookings_screen.dart';
 
@@ -54,28 +55,30 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
             if (newStatus == oldStatus) return;
 
             final (String message, Color color) = switch (newStatus) {
-              'accepted' => ('Technician has accepted your job!', Colors.blue),
-              'on_the_way' => ('Technician is on the way!', Colors.orange),
-              'in_progress' => ('Technician has started the job!', Colors.blue),
-              'completed' => ('Job completed!', Colors.green),
-              'rejected' => ('Technician rejected the job. Please rebook.', Colors.red),
-              _ => ('Booking status changed', Colors.grey),
+              'accepted' => ('Technician has accepted your job!', AppColors.accepted),
+              'on_the_way' => ('Technician is on the way!', AppColors.onTheWay),
+              'in_progress' => ('Technician has started the job!', AppColors.inProgress),
+              'completed' => ('Job completed!', AppColors.completed),
+              'rejected' => ('Technician rejected the job. Please rebook.', AppColors.rejected),
+              _ => ('Booking status changed', AppColors.textMuted),
             };
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
                   children: [
-                    const Icon(Icons.notifications, color: Colors.white),
-                    const SizedBox(width: 10),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(child: Text(message)),
                   ],
                 ),
-                backgroundColor: color,
                 duration: const Duration(seconds: 5),
                 action: SnackBarAction(
-                  label: 'View Booking',
-                  textColor: Colors.white,
+                  label: 'View',
                   onPressed: () => setState(() => _currentIndex = 1),
                 ),
               ),
@@ -89,17 +92,26 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.blueAccent,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Services'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'My Bookings',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'Services',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long_outlined),
+              activeIcon: Icon(Icons.receipt_long_rounded),
+              label: 'My Bookings',
+            ),
+          ],
+        ),
       ),
     );
   }
