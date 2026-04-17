@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -37,6 +38,22 @@ class KiangThaiApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
+      builder: (context, child) {
+        if (!kIsWeb) return child ?? const SizedBox.shrink();
+        return ColoredBox(
+          color: const Color(0xFF1E1E1E),
+          child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: SizedBox(
+                width: 390,
+                height: 844,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
       home: StreamBuilder<AuthState>(
         stream: Supabase.instance.client.auth.onAuthStateChange,
         builder: (context, snapshot) {
