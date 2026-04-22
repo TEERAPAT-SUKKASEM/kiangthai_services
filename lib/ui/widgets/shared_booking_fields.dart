@@ -99,7 +99,7 @@ class SharedBookingFields extends StatelessWidget {
               prefixIcon: Icon(Icons.bookmark_outline_rounded),
             ),
             isExpanded: true,
-            value: savedAddresses.contains(addressController.text)
+            initialValue: savedAddresses.contains(addressController.text)
                 ? addressController.text
                 : null,
             items: savedAddresses.map((addr) {
@@ -231,8 +231,9 @@ class SharedBookingFields extends StatelessWidget {
   }
 
   Widget _buildTimeGrid(List<String> timeSlots, BuildContext context) {
-    if (selectedDate != null && isLoadingTimes)
+    if (selectedDate != null && isLoadingTimes) {
       return const Center(child: CircularProgressIndicator());
+    }
 
     return GridView.builder(
       shrinkWrap: true,

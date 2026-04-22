@@ -116,6 +116,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
     final updatedAddresses = List<String>.from(_savedAddresses)
       ..add(text); // add new address to the list
 
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       await Supabase.instance.client
           .from('profiles')
@@ -127,23 +129,20 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
           })
           .eq('id', user.id);
 
+      if (!mounted) return;
       setState(() {
         _savedAddresses = updatedAddresses; // update displayed list
         _isNewAddress = false; // hide save button
       });
 
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Address saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Address saved successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -259,7 +258,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                       filled: true,
                       fillColor: Colors.white,
                     ),
-                    value: _selectedBtu,
+                    initialValue: _selectedBtu,
                     items: _btuOptions
                         .map(
                           (value) => DropdownMenuItem(
@@ -372,12 +371,15 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
               if (_selectedDate == null ||
                   _selectedTime == null ||
                   _addressController.text.isEmpty ||
                   _nameController.text.isEmpty ||
                   _phoneController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text(
                       'Please fill in all required fields',
@@ -390,7 +392,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               }
               if (_selectedService == 'AC Repair' &&
                   _symptomsController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text(
                       'Please describe the issue',
@@ -406,7 +408,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               if (user == null) return;
 
               try {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Saving booking...')),
                 );
                 final dateStr =
@@ -421,18 +423,16 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     .eq('service_type', 'AC')
                     .neq('status', 'cancelled');
                 if (existingBookings.isNotEmpty) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'This time slot is now full, please choose another',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        backgroundColor: Colors.orange,
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'This time slot is now full, please choose another',
+                        style: TextStyle(color: Colors.white),
                       ),
-                    );
-                    _fetchBookedTimes(_selectedDate!);
-                  }
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  if (mounted) _fetchBookedTimes(_selectedDate!);
                   return;
                 }
 
@@ -478,26 +478,23 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   'image_url': imageUrl,
                 });
 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Booking confirmed!',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Colors.green,
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Booking confirmed!',
+                      style: TextStyle(color: Colors.white),
                     ),
-                  );
-                  Navigator.pop(context);
-                }
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                navigator.pop();
               } catch (e) {
-                if (mounted)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             child: const Text(

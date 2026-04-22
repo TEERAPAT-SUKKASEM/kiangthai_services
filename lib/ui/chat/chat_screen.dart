@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/message.dart';
+import '../../services/chat_unread_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final dynamic bookingId;
@@ -24,6 +25,12 @@ class _ChatScreenState extends State<ChatScreen> {
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
   bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ChatUnreadService.instance.markRead(widget.bookingId);
+  }
 
   @override
   void dispose() {
@@ -134,6 +141,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   );
                 }
                 final messages = raw.map(Message.fromMap).toList();
+                // Chat is currently open — clear any unread flag that a
+                // realtime insert listener may have set for this booking.
+                ChatUnreadService.instance.markRead(widget.bookingId);
                 _scrollToBottom();
                 return ListView.builder(
                   controller: _scrollController,

@@ -21,6 +21,11 @@ class AuthRepository {
     await _supabase.auth.signOut();
   }
 
+  // Send password reset email
+  Future<void> resetPassword(String email) async {
+    await _supabase.auth.resetPasswordForEmail(email);
+  }
+
   // Create profile after sign up
   Future<void> createProfile({
     required String userId,

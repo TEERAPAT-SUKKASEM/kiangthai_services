@@ -62,22 +62,28 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       if (notification == null) return;
-      _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channel.id,
-            _channel.name,
-            channelDescription: _channel.description,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-          ),
-          iOS: const DarwinNotificationDetails(),
-        ),
-      );
+      showLocal(title: notification.title, body: notification.body);
     });
+  }
+
+  // Show an OS-level notification from within the app (used for in-app
+  // realtime events where we don't rely on an FCM push).
+  static Future<void> showLocal({String? title, String? body, int? id}) async {
+    await _localNotifications.show(
+      id ?? DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+    );
   }
 }

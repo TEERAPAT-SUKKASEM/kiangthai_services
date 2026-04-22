@@ -25,25 +25,36 @@ flutter build ios        # Build iOS
 
 **Initialization** (`lib/main.dart`): Loads `.env`, initializes Firebase and Supabase, then mounts the app. Supabase URL and anon key come from `.env` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`).
 
-**Auth routing**: `KiangThaiApp` uses `StreamBuilder<AuthState>` on `Supabase.instance.client.auth.onAuthStateChange` to route between `LoginScreen` (unauthenticated) and role-specific main screens (authenticated).
+**Auth routing**: `KiangThaiApp` uses `StreamBuilder<AuthState>` on `Supabase.instance.client.auth.onAuthStateChange`. When authenticated, a follow-up `FutureBuilder` reads `profiles.role` and routes to the matching main screen: `CustomerMainScreen`, `TechnicianMainScreen`, or `AdminMainScreen`. Unauthenticated users land on `LoginScreen`.
 
 **User roles**:
-- **Customer** — `lib/ui/customer/`: home, booking (air conditioning services), booking history with cancellation, profile settings with address management
-- **Technician** — `lib/ui/technician/`: job list with real-time Supabase stream updates, job acceptance and completion flows
+- **Customer** — `lib/ui/customer/`: home, AC / electrical / solar / CCTV / water-pump / electronics booking, booking history with cancellation + rating, profile settings with saved address list
+- **Technician** — `lib/ui/technician/`: real-time job board (pending bookings) and assigned jobs, accept/reject/complete flows
+- **Admin** — `lib/ui/admin/`: overview, bookings list, user management
+
+**Chat** — `lib/ui/chat/chat_screen.dart`: per-booking messaging between customer and assigned technician (messages table with RLS restricting reads to booking participants + admins).
 
 **Data layer** (`lib/data/`):
-- `repositories/auth_repository.dart` — Supabase auth wrapper (sign in, sign up, sign out)
+- `models/booking.dart` — consumed by `my_bookings_screen.dart`
+- `models/message.dart` — consumed by `chat_screen.dart`
+- `models/profile.dart` — consumed by `profile_settings_screen.dart` and `admin_users_screen.dart`
+- `repositories/auth_repository.dart` — Supabase auth wrapper (sign in, sign up, sign out, profile upsert, role fetch)
 - Real-time data uses Supabase `stream()` queries directly in widgets via `StreamBuilder`
 
-**State management**: Primarily `StatefulWidget`; `provider` package is a dependency but not yet heavily used. `lib/providers/` is currently empty.
+**Notifications**: `lib/services/notification_service.dart` initializes Firebase Messaging + `flutter_local_notifications`. Called once from `main.dart` at startup.
+
+**State management**: Primarily `StatefulWidget` with Supabase streams. `lib/providers/` is empty — no Provider/Riverpod in use.
 
 **Folder conventions**:
-- `lib/ui/auth/` — authentication screens
-- `lib/ui/customer/` — customer-facing screens
-- `lib/ui/technician/` — technician-facing screens
-- `lib/ui/shared/` and `lib/ui/widgets/` — reusable components
-- `lib/core/` — utilities (currently empty)
-- `lib/data/models/` — data models (currently empty)
+- `lib/ui/auth/` — authentication screens (login + signup tabs)
+- `lib/ui/customer/`, `lib/ui/technician/`, `lib/ui/admin/` — role-specific screens
+- `lib/ui/chat/` — chat screen
+- `lib/ui/shared/` (empty) and `lib/ui/widgets/` — reusable components (e.g. `shared_booking_fields.dart`)
+- `lib/core/theme.dart` — app theme + color tokens
+- `lib/services/` — platform services (notifications)
+- `lib/data/models/`, `lib/data/repositories/` — models and repositories
+
+**Supabase schema**: See `supabase_setup.sql` at the repo root for the full table/RLS/storage setup (profiles, bookings, messages, `booking-images` bucket).
 
 ## Pixel Agents Extension
 

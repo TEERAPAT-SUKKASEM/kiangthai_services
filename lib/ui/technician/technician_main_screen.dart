@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
+import '../../services/chat_unread_service.dart';
+import '../../services/notification_service.dart';
 import '../customer/profile_settings_screen.dart';
 import '../../data/models/booking.dart';
 import '../chat/chat_screen.dart';
+import '../widgets/unread_badge.dart';
 
 class TechnicianMainScreen extends StatefulWidget {
   const TechnicianMainScreen({super.key});
@@ -15,6 +18,71 @@ class TechnicianMainScreen extends StatefulWidget {
 class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   final Set<dynamic> _processingJobs = {};
   bool _showHistory = false;
+  RealtimeChannel? _newJobsChannel;
+  RealtimeChannel? _messagesChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToNewJobs();
+    _subscribeToIncomingMessages();
+  }
+
+  @override
+  void dispose() {
+    _newJobsChannel?.unsubscribe();
+    _messagesChannel?.unsubscribe();
+    super.dispose();
+  }
+
+  // Notify the technician when a new pending booking lands on the job board.
+  void _subscribeToNewJobs() {
+    final tech = Supabase.instance.client.auth.currentUser;
+    if (tech == null) return;
+
+    _newJobsChannel = Supabase.instance.client
+        .channel('technician_new_jobs_${tech.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'bookings',
+          callback: (payload) {
+            final status = payload.newRecord['status'] as String?;
+            if (status != 'pending') return;
+            final serviceType =
+                payload.newRecord['service_type'] as String? ?? 'service';
+            NotificationService.showLocal(
+              title: 'New job available',
+              body: 'A new $serviceType booking is waiting for a technician.',
+            );
+          },
+        )
+        .subscribe();
+  }
+
+  void _subscribeToIncomingMessages() {
+    final tech = Supabase.instance.client.auth.currentUser;
+    if (tech == null) return;
+
+    _messagesChannel = Supabase.instance.client
+        .channel('technician_messages_${tech.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          callback: (payload) {
+            final senderId = payload.newRecord['sender_id'] as String?;
+            if (senderId == tech.id) return; // my own message
+            final bookingId = payload.newRecord['booking_id'];
+            ChatUnreadService.instance.markUnread(bookingId);
+            NotificationService.showLocal(
+              title: 'New message',
+              body: payload.newRecord['content'] as String? ?? '',
+            );
+          },
+        )
+        .subscribe();
+  }
 
   // Function: technician accepts a job
   Future<void> _acceptJob(dynamic bookingId) async {
@@ -31,17 +99,19 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
           .update({'status': 'accepted', 'technician_id': tech.id})
           .eq('id', bookingId);
 
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Job accepted')),
         );
+      }
     } catch (e) {
       // On failure, restore the card
       setState(() => _processingJobs.remove(bookingId));
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      }
     }
   }
 
@@ -356,24 +426,27 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        final tech = Supabase.instance.client.auth.currentUser;
-                        if (tech == null) return;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChatScreen(
-                              bookingId: booking.id,
-                              currentUserId: tech.id,
-                              currentUserRole: 'technician',
-                              otherPersonName: booking.contactName ?? 'Customer',
+                    child: UnreadBadge(
+                      bookingId: booking.id,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          final tech = Supabase.instance.client.auth.currentUser;
+                          if (tech == null) return;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                bookingId: booking.id,
+                                currentUserId: tech.id,
+                                currentUserRole: 'technician',
+                                otherPersonName: booking.contactName ?? 'Customer',
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                      label: const Text('Chat'),
+                          );
+                        },
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                        label: const Text('Chat'),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -427,13 +500,15 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                         .eq('status', 'pending')
                         .order('created_at', ascending: false),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting)
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
+                      }
                       final bookings = snapshot.data;
-                      if (bookings == null || bookings.isEmpty)
+                      if (bookings == null || bookings.isEmpty) {
                         return const Center(
                           child: Text('No new jobs available'),
                         );
+                      }
                       return ListView.builder(
                         padding: const EdgeInsets.all(10),
                         itemCount: bookings.length,
@@ -451,8 +526,9 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                         .eq('technician_id', tech.id)
                         .order('created_at', ascending: false),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting)
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
+                      }
                       final bookings = snapshot.data ?? [];
 
                       const activeStatuses = {

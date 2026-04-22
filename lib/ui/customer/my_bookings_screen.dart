@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../data/models/booking.dart';
 import '../chat/chat_screen.dart';
+import '../widgets/unread_badge.dart';
 
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({super.key});
@@ -178,7 +179,7 @@ class MyBookingsScreen extends StatelessWidget {
                 return ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   itemCount: bookings.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final booking = bookings[index];
                     return _BookingCard(
@@ -300,20 +301,23 @@ class _BookingCard extends StatelessWidget {
               const SizedBox(height: 14),
               Align(
                 alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatScreen(
-                        bookingId: booking.id,
-                        currentUserId: userId,
-                        currentUserRole: 'customer',
-                        otherPersonName: 'Technician',
+                child: UnreadBadge(
+                  bookingId: booking.id,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          bookingId: booking.id,
+                          currentUserId: userId,
+                          currentUserRole: 'customer',
+                          otherPersonName: 'Technician',
+                        ),
                       ),
                     ),
+                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                    label: const Text('Chat with Technician'),
                   ),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  label: const Text('Chat with Technician'),
                 ),
               ),
             ],

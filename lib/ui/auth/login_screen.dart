@@ -226,6 +226,66 @@ class _LoginFormState extends State<_LoginForm> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        final controller = TextEditingController(
+          text: _emailController.text.trim(),
+        );
+        return AlertDialog(
+          title: const Text('Reset password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter the email on your account. We\'ll send you a reset link.',
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                onSubmitted: (v) =>
+                    Navigator.pop(dialogContext, v.trim()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, controller.text.trim()),
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (email == null || email.isEmpty || !email.contains('@')) return;
+
+    try {
+      await _authRepo.resetPassword(email);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Reset link sent to $email')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -272,7 +332,20 @@ class _LoginFormState extends State<_LoginForm> {
               ),
               validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _isLoading ? null : _forgotPassword,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Forgot password?'),
+              ),
+            ),
+            const SizedBox(height: 14),
             ElevatedButton(
               onPressed: _isLoading ? null : _login,
               child: _isLoading

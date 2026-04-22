@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
+import '../../services/chat_unread_service.dart';
+import '../../services/notification_service.dart';
 import 'customer_home_screen.dart';
 import 'my_bookings_screen.dart';
 
@@ -14,6 +16,7 @@ class CustomerMainScreen extends StatefulWidget {
 class _CustomerMainScreenState extends State<CustomerMainScreen> {
   int _currentIndex = 0;
   RealtimeChannel? _bookingChannel;
+  RealtimeChannel? _messagesChannel;
 
   final List<Widget> _pages = const [
     CustomerHomeScreen(),
@@ -24,12 +27,38 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
   void initState() {
     super.initState();
     _subscribeToBookingUpdates();
+    _subscribeToIncomingMessages();
   }
 
   @override
   void dispose() {
     _bookingChannel?.unsubscribe();
+    _messagesChannel?.unsubscribe();
     super.dispose();
+  }
+
+  void _subscribeToIncomingMessages() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    _messagesChannel = Supabase.instance.client
+        .channel('customer_messages_${user.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          callback: (payload) {
+            final senderId = payload.newRecord['sender_id'] as String?;
+            if (senderId == user.id) return; // my own message
+            final bookingId = payload.newRecord['booking_id'];
+            ChatUnreadService.instance.markUnread(bookingId);
+            NotificationService.showLocal(
+              title: 'New message',
+              body: payload.newRecord['content'] as String? ?? '',
+            );
+          },
+        )
+        .subscribe();
   }
 
   void _subscribeToBookingUpdates() {
@@ -62,6 +91,11 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
               'rejected' => ('Technician rejected the job. Please rebook.', AppColors.rejected),
               _ => ('Booking status changed', AppColors.textMuted),
             };
+
+            NotificationService.showLocal(
+              title: 'Booking update',
+              body: message,
+            );
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
