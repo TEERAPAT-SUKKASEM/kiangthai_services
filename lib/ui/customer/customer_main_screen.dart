@@ -124,28 +124,83 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.border, width: 1)),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Services',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_outlined),
-              activeIcon: Icon(Icons.receipt_long_rounded),
-              label: 'My Bookings',
-            ),
-          ],
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: user == null
+              ? const Stream.empty()
+              : Supabase.instance.client
+                  .from('bookings')
+                  .stream(primaryKey: ['id'])
+                  .eq('customer_id', user.id),
+          builder: (context, snapshot) {
+            final hasPending = (snapshot.data ?? [])
+                .any((b) => b['status'] == 'pending');
+
+            return BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+              items: [
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home_rounded),
+                  label: 'Services',
+                ),
+                BottomNavigationBarItem(
+                  icon: _BookingsTabIcon(
+                    icon: Icons.receipt_long_outlined,
+                    showDot: hasPending,
+                  ),
+                  activeIcon: _BookingsTabIcon(
+                    icon: Icons.receipt_long_rounded,
+                    showDot: hasPending,
+                  ),
+                  label: 'My Bookings',
+                ),
+              ],
+            );
+          },
         ),
+      ),
+    );
+  }
+}
+
+class _BookingsTabIcon extends StatelessWidget {
+  final IconData icon;
+  final bool showDot;
+  const _BookingsTabIcon({required this.icon, required this.showDot});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Center(child: Icon(icon)),
+          if (showDot)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.surface, width: 1.5),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

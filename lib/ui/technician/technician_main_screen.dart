@@ -6,6 +6,7 @@ import '../../services/notification_service.dart';
 import '../customer/profile_settings_screen.dart';
 import '../../data/models/booking.dart';
 import '../chat/chat_screen.dart';
+import '../widgets/pressable_scale.dart';
 import '../widgets/unread_badge.dart';
 
 class TechnicianMainScreen extends StatefulWidget {
@@ -414,6 +415,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                     flex: 2,
                     child: ElevatedButton.icon(
                       onPressed: () => _acceptJob(booking.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.onAccent,
+                      ),
                       icon: const Icon(Icons.check_rounded, size: 18),
                       label: const Text('Accept Job'),
                     ),
@@ -463,124 +468,368 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   @override
   Widget build(BuildContext context) {
     final tech = Supabase.instance.client.auth.currentUser;
+    final greetingName = (tech?.userMetadata?['full_name'] as String?)?.split(' ').first
+        ?? tech?.email?.split('@').first
+        ?? 'there';
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Technician'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.person_outline_rounded),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileSettingsScreen(),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hello, $greetingName',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Your job board',
+                            style: Theme.of(context).textTheme.displayMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    PressableScale(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileSettingsScreen(),
+                        ),
+                      ),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+                          boxShadow: AppShadows.soft,
+                        ),
+                        child: const Icon(Icons.person_outline_rounded,
+                            size: 22, color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'New Jobs'),
-              Tab(text: 'My Jobs'),
+              if (tech != null) _TechStatsBanner(technicianId: tech.id),
+              Container(
+                color: AppColors.surface,
+                child: const TabBar(
+                  tabs: [
+                    Tab(text: 'New Jobs'),
+                    Tab(text: 'My Jobs'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: tech == null
+                    ? const Center(child: Text('Please log in'))
+                    : TabBarView(
+                        children: [
+                          // Tab 1: New jobs
+                          StreamBuilder<List<Map<String, dynamic>>>(
+                            stream: Supabase.instance.client
+                                .from('bookings')
+                                .stream(primaryKey: ['id'])
+                                .eq('status', 'pending')
+                                .order('created_at', ascending: false),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: CircularProgressIndicator());
+                              }
+                              final bookings = snapshot.data;
+                              if (bookings == null || bookings.isEmpty) {
+                                return const _TechEmptyState(
+                                  icon: Icons.inbox_rounded,
+                                  title: 'You\'re all caught up',
+                                  subtitle: 'No new jobs right now.\nWe\'ll notify you when one comes in.',
+                                );
+                              }
+                              return ListView.builder(
+                                padding: const EdgeInsets.all(10),
+                                itemCount: bookings.length,
+                                itemBuilder: (context, index) =>
+                                    _buildJobCard(bookings[index], false),
+                              );
+                            },
+                          ),
+
+                          // Tab 2: My jobs
+                          StreamBuilder<List<Map<String, dynamic>>>(
+                            stream: Supabase.instance.client
+                                .from('bookings')
+                                .stream(primaryKey: ['id'])
+                                .eq('technician_id', tech.id)
+                                .order('created_at', ascending: false),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: CircularProgressIndicator());
+                              }
+                              final bookings = snapshot.data ?? [];
+
+                              const activeStatuses = {
+                                'accepted',
+                                'on_the_way',
+                                'in_progress',
+                              };
+                              final displayed = _showHistory
+                                  ? bookings
+                                  : bookings
+                                      .where((b) =>
+                                          activeStatuses.contains(b['status']))
+                                      .toList();
+
+                              return Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        FilterChip(
+                                          label: const Text('Show History'),
+                                          selected: _showHistory,
+                                          onSelected: (val) =>
+                                              setState(() => _showHistory = val),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: displayed.isEmpty
+                                        ? _TechEmptyState(
+                                            icon: _showHistory
+                                                ? Icons.history_rounded
+                                                : Icons.work_outline_rounded,
+                                            title: _showHistory
+                                                ? 'No job history yet'
+                                                : 'No active jobs',
+                                            subtitle: _showHistory
+                                                ? 'Completed jobs will appear here.'
+                                                : 'Accept a job from the New Jobs tab to get started.',
+                                          )
+                                        : ListView.builder(
+                                            padding: const EdgeInsets.all(10),
+                                            itemCount: displayed.length,
+                                            itemBuilder: (context, index) =>
+                                                _buildJobCard(displayed[index], true),
+                                          ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+              ),
             ],
           ),
         ),
-        body: tech == null
-            ? const Center(child: Text('Please log in'))
-            : TabBarView(
-                children: [
-                  // Tab 1: New jobs
-                  StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: Supabase.instance.client
-                        .from('bookings')
-                        .stream(primaryKey: ['id'])
-                        .eq('status', 'pending')
-                        .order('created_at', ascending: false),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final bookings = snapshot.data;
-                      if (bookings == null || bookings.isEmpty) {
-                        return const Center(
-                          child: Text('No new jobs available'),
-                        );
-                      }
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(10),
-                        itemCount: bookings.length,
-                        itemBuilder: (context, index) =>
-                            _buildJobCard(bookings[index], false),
-                      );
-                    },
+      ),
+    );
+  }
+}
+
+class _TechStatsBanner extends StatelessWidget {
+  final String technicianId;
+  const _TechStatsBanner({required this.technicianId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: AppShadows.brandGlow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.brand, AppColors.brandDark],
+                    ),
                   ),
-
-                  // Tab 2: My jobs
-                  StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: Supabase.instance.client
-                        .from('bookings')
-                        .stream(primaryKey: ['id'])
-                        .eq('technician_id', tech.id)
-                        .order('created_at', ascending: false),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final bookings = snapshot.data ?? [];
-
-                      const activeStatuses = {
-                        'accepted',
-                        'on_the_way',
-                        'in_progress',
-                      };
-                      final displayed = _showHistory
-                          ? bookings
-                          : bookings
-                              .where((b) =>
-                                  activeStatuses.contains(b['status']))
-                              .toList();
-
-                      return Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                FilterChip(
-                                  label: const Text('Show History'),
-                                  selected: _showHistory,
-                                  onSelected: (val) =>
-                                      setState(() => _showHistory = val),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: displayed.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      _showHistory
-                                          ? 'No job history yet'
-                                          : 'No active jobs',
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.all(10),
-                                    itemCount: displayed.length,
-                                    itemBuilder: (context, index) =>
-                                        _buildJobCard(displayed[index], true),
-                                  ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+                ),
               ),
+              Positioned(
+                top: -30,
+                right: -30,
+                child: Container(
+                  width: 130,
+                  height: 130,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.14),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: Supabase.instance.client
+                      .from('bookings')
+                      .stream(primaryKey: ['id'])
+                      .eq('technician_id', technicianId),
+                  builder: (context, snapshot) {
+                    final bookings = snapshot.data ?? const [];
+                    const activeStatuses = {
+                      'accepted',
+                      'on_the_way',
+                      'in_progress',
+                    };
+                    final active = bookings
+                        .where((b) => activeStatuses.contains(b['status']))
+                        .length;
+                    final completed = bookings
+                        .where((b) => b['status'] == 'completed')
+                        .length;
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _StatTile(
+                            label: 'Active',
+                            value: '$active',
+                            icon: Icons.bolt_rounded,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 40,
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                        Expanded(
+                          child: _StatTile(
+                            label: 'Completed',
+                            value: '$completed',
+                            icon: Icons.verified_rounded,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  const _StatTile({required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.accent, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+                letterSpacing: -0.3,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TechEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _TechEmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.tint(AppColors.brand, 0.08),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(icon, color: AppColors.brand, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textMuted,
+                    height: 1.5,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

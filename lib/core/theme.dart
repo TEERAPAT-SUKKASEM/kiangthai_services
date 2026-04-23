@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const brand = Color(0xFF2563EB);
-  static const brandDark = Color(0xFF1D4ED8);
+  static const brand = Color(0xFF0D264B);
+  static const brandDark = Color(0xFF081A35);
+  static const accent = Color(0xFFFBCA24);
+  static const accentDark = Color(0xFFE0AF0C);
+  static const onAccent = Color(0xFF0D264B);
   static const surface = Color(0xFFFFFFFF);
   static const background = Color(0xFFF8FAFC);
   static const textPrimary = Color(0xFF0F172A);
@@ -33,10 +36,64 @@ class AppColors {
   static Color tint(Color c, [double alpha = 0.12]) => c.withValues(alpha: alpha);
 }
 
+class AppShadows {
+  static List<BoxShadow> soft = [
+    BoxShadow(
+      color: const Color(0xFF0D264B).withValues(alpha: 0.06),
+      blurRadius: 14,
+      offset: const Offset(0, 4),
+    ),
+    BoxShadow(
+      color: const Color(0xFF0D264B).withValues(alpha: 0.03),
+      blurRadius: 4,
+      offset: const Offset(0, 1),
+    ),
+  ];
+
+  static List<BoxShadow> lifted = [
+    BoxShadow(
+      color: const Color(0xFF0D264B).withValues(alpha: 0.10),
+      blurRadius: 24,
+      offset: const Offset(0, 10),
+    ),
+    BoxShadow(
+      color: const Color(0xFF0D264B).withValues(alpha: 0.05),
+      blurRadius: 6,
+      offset: const Offset(0, 2),
+    ),
+  ];
+
+  static List<BoxShadow> accentGlow = [
+    BoxShadow(
+      color: const Color(0xFFFBCA24).withValues(alpha: 0.45),
+      blurRadius: 22,
+      offset: const Offset(0, 8),
+      spreadRadius: -4,
+    ),
+    BoxShadow(
+      color: const Color(0xFF0D264B).withValues(alpha: 0.12),
+      blurRadius: 8,
+      offset: const Offset(0, 3),
+    ),
+  ];
+
+  static List<BoxShadow> brandGlow = [
+    BoxShadow(
+      color: const Color(0xFF0D264B).withValues(alpha: 0.30),
+      blurRadius: 24,
+      offset: const Offset(0, 10),
+      spreadRadius: -2,
+    ),
+  ];
+}
+
 ThemeData buildAppTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.brand,
     primary: AppColors.brand,
+    onPrimary: Colors.white,
+    secondary: AppColors.accent,
+    onSecondary: AppColors.onAccent,
     surface: AppColors.surface,
     onSurface: AppColors.textPrimary,
   );
@@ -68,8 +125,9 @@ ThemeData buildAppTheme() {
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.textPrimary,
       surfaceTintColor: Colors.transparent,
+      shadowColor: Color(0x1A0D264B),
       elevation: 0,
-      scrolledUnderElevation: 0.5,
+      scrolledUnderElevation: 2,
       centerTitle: false,
       titleTextStyle: TextStyle(
         fontSize: 18,
@@ -82,13 +140,13 @@ ThemeData buildAppTheme() {
 
     cardTheme: CardThemeData(
       color: AppColors.surface,
-      elevation: 0,
+      elevation: 2,
       surfaceTintColor: Colors.transparent,
-      shadowColor: Colors.black12,
+      shadowColor: AppColors.brand.withValues(alpha: 0.18),
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border, width: 1),
+        side: BorderSide(color: AppColors.border.withValues(alpha: 0.6), width: 1),
       ),
     ),
 
@@ -96,12 +154,13 @@ ThemeData buildAppTheme() {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.brand,
         foregroundColor: Colors.white,
-        elevation: 0,
-        shadowColor: Colors.transparent,
+        elevation: 3,
+        shadowColor: AppColors.brand.withValues(alpha: 0.45),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         minimumSize: const Size(0, 48),
         textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, letterSpacing: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        animationDuration: const Duration(milliseconds: 150),
       ),
     ),
 
@@ -168,7 +227,7 @@ ThemeData buildAppTheme() {
       unselectedItemColor: AppColors.textMuted,
       selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-      elevation: 0,
+      elevation: 8,
       type: BottomNavigationBarType.fixed,
       showUnselectedLabels: true,
     ),
@@ -215,6 +274,18 @@ ThemeData buildAppTheme() {
 
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.brand,
+    ),
+
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: AppColors.accent,
+      foregroundColor: AppColors.onAccent,
+      elevation: 2,
+      focusElevation: 3,
+      hoverElevation: 3,
+      highlightElevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
     ),
   );
 }

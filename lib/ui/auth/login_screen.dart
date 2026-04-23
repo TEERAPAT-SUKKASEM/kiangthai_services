@@ -34,75 +34,72 @@ class _LoginScreenState extends State<LoginScreen>
           child: Column(
             children: [
               const _HeroSection(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.fieldFill,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: TabBar(
-                            controller: _tabController,
-                            indicator: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(11),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
+              Transform.translate(
+                offset: const Offset(0, -24),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+                      boxShadow: AppShadows.lifted,
+                    ),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.fieldFill,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: TabBar(
+                              controller: _tabController,
+                              indicator: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(11),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              dividerColor: Colors.transparent,
+                              labelColor: AppColors.textPrimary,
+                              unselectedLabelColor: AppColors.textMuted,
+                              labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                              unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              padding: const EdgeInsets.all(4),
+                              tabs: const [
+                                Tab(text: 'Log In'),
+                                Tab(text: 'Sign Up'),
                               ],
                             ),
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            dividerColor: Colors.transparent,
-                            labelColor: AppColors.textPrimary,
-                            unselectedLabelColor: AppColors.textMuted,
-                            labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                            padding: const EdgeInsets.all(4),
-                            tabs: const [
-                              Tab(text: 'Log In'),
-                              Tab(text: 'Sign Up'),
-                            ],
                           ),
                         ),
-                      ),
-                      AnimatedBuilder(
-                        animation: _tabController,
-                        builder: (context, _) {
-                          return AnimatedSize(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOut,
-                            alignment: Alignment.topCenter,
-                            child: IndexedStack(
-                              index: _tabController.index,
-                              children: const [
-                                _LoginForm(),
-                                _SignUpForm(),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                        AnimatedBuilder(
+                          animation: _tabController,
+                          builder: (context, _) {
+                            return AnimatedSize(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOut,
+                              alignment: Alignment.topCenter,
+                              child: IndexedStack(
+                                index: _tabController.index,
+                                children: const [
+                                  _LoginForm(),
+                                  _SignUpForm(),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -114,73 +111,213 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-class _HeroSection extends StatelessWidget {
+class _HeroSection extends StatefulWidget {
   const _HeroSection();
+
+  @override
+  State<_HeroSection> createState() => _HeroSectionState();
+}
+
+class _HeroSectionState extends State<_HeroSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _floatController;
+
+  @override
+  void initState() {
+    super.initState();
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _floatController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.brand, AppColors.brandDark],
-        ),
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        boxShadow: AppShadows.brandGlow,
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.brand, AppColors.brandDark],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -60,
+              right: -40,
+              child: Container(
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.ac_unit_rounded, color: Colors.white, size: 26),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Kiang Thai',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
+                  shape: BoxShape.circle,
+                  color: AppColors.accent.withValues(alpha: 0.14),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const Text(
-            'Home services,\nmade simple.',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              height: 1.15,
-              letterSpacing: -0.5,
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Book trusted technicians for AC, electrical, solar, and more.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: 14,
-              height: 1.5,
+            Positioned(
+              bottom: -80,
+              left: -50,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _floatController,
+                        builder: (context, child) {
+                          final t = _floatController.value;
+                          return Transform.translate(
+                            offset: Offset(0, -2 * (t - 0.5) * 2),
+                            child: child,
+                          );
+                        },
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withValues(alpha: 0.3),
+                                Colors.white.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.ac_unit_rounded, color: Colors.white, size: 28),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Kiang Thai',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  _FadeSlideIn(
+                    delay: const Duration(milliseconds: 80),
+                    child: const Text(
+                      'Home services,\nmade simple.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _FadeSlideIn(
+                    delay: const Duration(milliseconds: 180),
+                    child: Text(
+                      'Book trusted technicians for AC, electrical, solar, and more.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _FadeSlideIn extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  const _FadeSlideIn({required this.child, this.delay = Duration.zero});
+
+  @override
+  State<_FadeSlideIn> createState() => _FadeSlideInState();
+}
+
+class _FadeSlideInState extends State<_FadeSlideIn> {
+  bool _start = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(widget.delay, () {
+      if (mounted) setState(() => _start = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: _start ? 1.0 : 0.0),
+      duration: const Duration(milliseconds: 520),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, c) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 12),
+            child: c,
+          ),
+        );
+      },
+      child: widget.child,
     );
   }
 }
@@ -348,11 +485,15 @@ class _LoginFormState extends State<_LoginForm> {
             const SizedBox(height: 14),
             ElevatedButton(
               onPressed: _isLoading ? null : _login,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
+              ),
               child: _isLoading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(color: AppColors.onAccent, strokeWidth: 2.5),
                     )
                   : const Text('Log In'),
             ),
@@ -522,11 +663,15 @@ class _SignUpFormState extends State<_SignUpForm> {
             const SizedBox(height: 22),
             ElevatedButton(
               onPressed: _isLoading ? null : _register,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
+              ),
               child: _isLoading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(color: AppColors.onAccent, strokeWidth: 2.5),
                     )
                   : const Text('Create Account'),
             ),

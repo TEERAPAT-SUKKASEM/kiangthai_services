@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
+import '../widgets/pressable_scale.dart';
 import 'air_booking_screen.dart';
 import 'service_booking_screen.dart';
 import 'profile_settings_screen.dart';
@@ -9,7 +10,7 @@ class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
 
   static const List<_ServiceTile> _services = [
-    _ServiceTile(name: 'AC', icon: Icons.ac_unit_rounded, tint: Color(0xFF0EA5E9)),
+    _ServiceTile(name: 'AC', icon: Icons.ac_unit_rounded, tint: Color(0xFF0EA5E9), popular: true),
     _ServiceTile(name: 'Electrical', icon: Icons.electrical_services_rounded, tint: Color(0xFFF59E0B)),
     _ServiceTile(name: 'Solar', icon: Icons.wb_sunny_rounded, tint: Color(0xFFF97316)),
     _ServiceTile(name: 'CCTV', icon: Icons.videocam_rounded, tint: Color(0xFFEF4444)),
@@ -132,7 +133,13 @@ class _ServiceTile {
   final String name;
   final IconData icon;
   final Color tint;
-  const _ServiceTile({required this.name, required this.icon, required this.tint});
+  final bool popular;
+  const _ServiceTile({
+    required this.name,
+    required this.icon,
+    required this.tint,
+    this.popular = false,
+  });
 }
 
 class _ServiceCard extends StatelessWidget {
@@ -142,45 +149,146 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.tint(tile.tint, 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(tile.icon, color: tile.tint, size: 24),
-                ),
-                const Spacer(),
-                Text(tile.name, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 2),
-                Text(
-                  'Book now',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                ),
-              ],
+    final popularShadow = tile.popular
+        ? [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.25),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+              spreadRadius: -4,
             ),
+            BoxShadow(
+              color: AppColors.brand.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ]
+        : AppShadows.soft;
+
+    return PressableScale(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: tile.popular ? AppColors.accent : AppColors.border.withValues(alpha: 0.6),
+            width: tile.popular ? 1.5 : 1,
           ),
+          boxShadow: popularShadow,
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.tint(tile.tint, 0.18),
+                          AppColors.tint(tile.tint, 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(13),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tile.tint.withValues(alpha: 0.18),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                          spreadRadius: -2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(tile.icon, color: tile.tint, size: 24),
+                  ),
+                  const Spacer(),
+                  Text(tile.name, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Book now',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            if (tile.popular)
+              const Positioned(
+                top: 10,
+                right: 10,
+                child: _PopularBadge(),
+              ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class _PopularBadge extends StatefulWidget {
+  const _PopularBadge();
+
+  @override
+  State<_PopularBadge> createState() => _PopularBadgeState();
+}
+
+class _PopularBadgeState extends State<_PopularBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final t = Curves.easeInOut.transform(_pulse.value);
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.accent,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.35 + t * 0.35),
+                blurRadius: 10 + t * 8,
+                spreadRadius: t * 1.5,
+              ),
+            ],
+          ),
+          child: const Text(
+            'POPULAR',
+            style: TextStyle(
+              color: AppColors.onAccent,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -191,15 +299,16 @@ class _ProfileButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.fieldFill,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+          boxShadow: AppShadows.soft,
         ),
         child: const Icon(Icons.person_outline_rounded, size: 22, color: AppColors.textPrimary),
       ),
@@ -240,7 +349,8 @@ class _TrustStat extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         children: [
@@ -272,49 +382,106 @@ class _PromoBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.brand, AppColors.brandDark],
-          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: AppShadows.brandGlow,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Trusted home services',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.brand, AppColors.brandDark],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Book verified technicians in minutes.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
+                ),
+              ),
+              Positioned(
+                top: -30,
+                right: -30,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.14),
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(16),
+              Positioned(
+                bottom: -40,
+                left: -20,
+                child: Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
               ),
-              child: const Icon(Icons.handyman_rounded, color: Colors.white, size: 28),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Trusted home services',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Book verified technicians in minutes.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.28),
+                            Colors.white.withValues(alpha: 0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.28),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.handyman_rounded, color: Colors.white, size: 28),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

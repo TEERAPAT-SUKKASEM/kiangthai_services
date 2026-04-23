@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
 import '../../services/chat_unread_service.dart';
 
-// Shows `child` with a small red dot in the top-right corner when
-// `bookingId` is flagged as unread in ChatUnreadService.
 class UnreadBadge extends StatelessWidget {
   final dynamic bookingId;
   final Widget child;
@@ -25,15 +24,26 @@ class UnreadBadge extends StatelessWidget {
             child,
             if (show)
               Positioned(
-                top: -2,
-                right: -2,
+                top: -4,
+                right: -4,
                 child: Container(
-                  width: 10,
-                  height: 10,
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.surface, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'NEW',
+                    style: TextStyle(
+                      color: AppColors.onAccent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                      height: 1,
+                    ),
                   ),
                 ),
               ),
