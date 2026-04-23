@@ -15,10 +15,6 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS fcm_token TEXT;
 
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en'
-    CHECK (language IN ('en', 'th'));
-
 
 -- =============================================================================
 -- SECTION 2: Enable Row Level Security

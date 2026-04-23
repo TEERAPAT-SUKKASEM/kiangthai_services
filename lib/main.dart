@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/i18n.dart';
 import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
@@ -33,72 +32,63 @@ class KiangThaiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: I18n.instance.language,
-      builder: (context, _, _) => MaterialApp(
-        title: 'Kiang Thai Service',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(),
-        builder: (context, child) {
-          if (!kIsWeb) return child ?? const SizedBox.shrink();
-          return ColoredBox(
-            color: const Color(0xFF1E1E1E),
-            child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
-                child: SizedBox(
-                  width: 390,
-                  height: 844,
-                  child: child,
-                ),
+    return MaterialApp(
+      title: 'Kiang Thai Service',
+      debugShowCheckedModeBanner: false,
+      theme: buildAppTheme(),
+      builder: (context, child) {
+        if (!kIsWeb) return child ?? const SizedBox.shrink();
+        return ColoredBox(
+          color: const Color(0xFF1E1E1E),
+          child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: SizedBox(
+                width: 390,
+                height: 844,
+                child: child,
               ),
             ),
+          ),
+        );
+      },
+      home: StreamBuilder<AuthState>(
+        stream: Supabase.instance.client.auth.onAuthStateChange,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const _LoadingScreen();
+          }
+
+          final session = snapshot.hasData ? snapshot.data!.session : null;
+
+          if (session == null) {
+            return const LoginScreen();
+          }
+
+          // Fetch role from profiles to route to the correct screen
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: Supabase.instance.client
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .maybeSingle(),
+            builder: (context, profileSnapshot) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                return const _LoadingScreen();
+              }
+
+              final role = profileSnapshot.data?['role'] as String?;
+
+              if (role == 'technician') {
+                return const TechnicianMainScreen();
+              }
+              if (role == 'admin') {
+                return const AdminMainScreen();
+              }
+              return const CustomerMainScreen();
+            },
           );
         },
-        home: StreamBuilder<AuthState>(
-          stream: Supabase.instance.client.auth.onAuthStateChange,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingScreen();
-            }
-
-            final session = snapshot.hasData ? snapshot.data!.session : null;
-
-            if (session == null) {
-              return const LoginScreen();
-            }
-
-            // Fetch role + language from profiles so we can route AND apply
-            // the user's saved language preference on login.
-            return FutureBuilder<Map<String, dynamic>?>(
-              future: Supabase.instance.client
-                  .from('profiles')
-                  .select('role, language')
-                  .eq('id', session.user.id)
-                  .maybeSingle(),
-              builder: (context, profileSnapshot) {
-                if (profileSnapshot.connectionState == ConnectionState.waiting) {
-                  return const _LoadingScreen();
-                }
-
-                final data = profileSnapshot.data;
-                final role = data?['role'] as String?;
-                final lang = data?['language'] as String?;
-                if (lang == 'en' || lang == 'th') {
-                  I18n.instance.language.value = lang!;
-                }
-
-                if (role == 'technician') {
-                  return const TechnicianMainScreen();
-                }
-                if (role == 'admin') {
-                  return const AdminMainScreen();
-                }
-                return const CustomerMainScreen();
-              },
-            );
-          },
-        ),
       ),
     );
   }

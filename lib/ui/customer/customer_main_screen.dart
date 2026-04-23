@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../services/chat_unread_service.dart';
 import '../../services/notification_service.dart';
@@ -54,7 +53,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
             final bookingId = payload.newRecord['booking_id'];
             ChatUnreadService.instance.markUnread(bookingId);
             NotificationService.showLocal(
-              title: t('chat.new_message'),
+              title: 'New message',
               body: payload.newRecord['content'] as String? ?? '',
             );
           },
@@ -85,16 +84,16 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
             if (newStatus == oldStatus) return;
 
             final (String message, Color color) = switch (newStatus) {
-              'accepted' => (t('notify.accepted'), AppColors.accepted),
-              'on_the_way' => (t('notify.on_the_way'), AppColors.onTheWay),
-              'in_progress' => (t('notify.in_progress'), AppColors.inProgress),
-              'completed' => (t('notify.completed'), AppColors.completed),
-              'rejected' => (t('notify.rejected'), AppColors.rejected),
-              _ => (t('notify.status_changed'), AppColors.textMuted),
+              'accepted' => ('Technician has accepted your job!', AppColors.accepted),
+              'on_the_way' => ('Technician is on the way!', AppColors.onTheWay),
+              'in_progress' => ('Technician has started the job!', AppColors.inProgress),
+              'completed' => ('Job completed!', AppColors.completed),
+              'rejected' => ('Technician rejected the job. Please rebook.', AppColors.rejected),
+              _ => ('Booking status changed', AppColors.textMuted),
             };
 
             NotificationService.showLocal(
-              title: t('bookings.booking_update'),
+              title: 'Booking update',
               body: message,
             );
 
@@ -113,7 +112,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
                 ),
                 duration: const Duration(seconds: 5),
                 action: SnackBarAction(
-                  label: t('common.view'),
+                  label: 'View',
                   onPressed: () => setState(() => _currentIndex = 1),
                 ),
               ),
@@ -134,16 +133,16 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          items: [
+          items: const [
             BottomNavigationBarItem(
-              icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home_rounded),
-              label: t('nav.services'),
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'Services',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.receipt_long_outlined),
-              activeIcon: const Icon(Icons.receipt_long_rounded),
-              label: t('nav.my_bookings'),
+              icon: Icon(Icons.receipt_long_outlined),
+              activeIcon: Icon(Icons.receipt_long_rounded),
+              label: 'My Bookings',
             ),
           ],
         ),

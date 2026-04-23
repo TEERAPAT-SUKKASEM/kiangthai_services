@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../data/models/booking.dart';
 import '../chat/chat_screen.dart';
@@ -22,13 +21,13 @@ class MyBookingsScreen extends StatelessWidget {
       }).eq('id', bookingId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('bookings.rating_saved'))),
+          const SnackBar(content: Text('Thank you for your review!')),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t('common.error')}: $e')),
+          SnackBar(content: Text('Could not save rating: $e')),
         );
       }
     }
@@ -42,13 +41,13 @@ class MyBookingsScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(t('bookings.rate_service')),
+          title: const Text('Rate this Service'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                t('bookings.rate_title'),
+                'How was your experience?',
                 style: Theme.of(ctx).textTheme.bodyMedium,
               ),
               const SizedBox(height: 14),
@@ -70,8 +69,8 @@ class MyBookingsScreen extends StatelessWidget {
               TextField(
                 controller: reviewController,
                 maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: t('bookings.review_hint'),
+                decoration: const InputDecoration(
+                  hintText: 'Leave a comment (optional)',
                 ),
               ),
             ],
@@ -79,7 +78,7 @@ class MyBookingsScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(t('common.cancel')),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: selectedRating == 0
@@ -93,7 +92,7 @@ class MyBookingsScreen extends StatelessWidget {
                         reviewController.text.trim(),
                       );
                     },
-              child: Text(t('common.submit')),
+              child: const Text('Submit'),
             ),
           ],
         ),
@@ -110,17 +109,17 @@ class MyBookingsScreen extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(t('bookings.cancel_confirm')),
-        content: Text(t('bookings.cancel_body')),
+        title: const Text('Cancel this booking?'),
+        content: const Text('You can rebook anytime from the services page.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(t('bookings.keep')),
+            child: const Text('Keep'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.rejected),
-            child: Text(t('bookings.cancel_booking')),
+            child: const Text('Cancel Booking'),
           ),
         ],
       ),
@@ -135,13 +134,13 @@ class MyBookingsScreen extends StatelessWidget {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(t('bookings.cancelled'))),
+            const SnackBar(content: Text('Booking cancelled')),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${t('common.error')}: $e')),
+            SnackBar(content: Text('Error: $e')),
           );
         }
       }
@@ -153,7 +152,7 @@ class MyBookingsScreen extends StatelessWidget {
     final user = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('bookings.title'))),
+      appBar: AppBar(title: const Text('My Bookings')),
       body: user == null
           ? const Center(child: Text('Please log in'))
           : StreamBuilder<List<Map<String, dynamic>>>(
@@ -167,7 +166,7 @@ class MyBookingsScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('${t('common.error')}: ${snapshot.error}'));
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 final raw = snapshot.data ?? [];
@@ -238,7 +237,7 @@ class _BookingCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tCanonical(booking.serviceType, prefix: 'service'),
+                        booking.serviceType,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               decoration: isCancelled ? TextDecoration.lineThrough : null,
                               color: isCancelled ? AppColors.textMuted : AppColors.textPrimary,
@@ -247,17 +246,14 @@ class _BookingCard extends StatelessWidget {
                       if ((booking.subType ?? '').isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
-                          tCanonical(booking.subType!),
+                          booking.subType!,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
                     ],
                   ),
                 ),
-                _StatusPill(
-                  label: tCanonical(booking.status, prefix: 'status'),
-                  color: statusColor,
-                ),
+                _StatusPill(label: booking.statusLabel, color: statusColor),
               ],
             ),
             const SizedBox(height: 14),
@@ -315,12 +311,12 @@ class _BookingCard extends StatelessWidget {
                           bookingId: booking.id,
                           currentUserId: userId,
                           currentUserRole: 'customer',
-                          otherPersonName: t('common.technician'),
+                          otherPersonName: 'Technician',
                         ),
                       ),
                     ),
                     icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                    label: Text(t('bookings.chat_with_tech')),
+                    label: const Text('Chat with Technician'),
                   ),
                 ),
               ),
@@ -332,7 +328,7 @@ class _BookingCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: onCancel,
                   icon: const Icon(Icons.close_rounded, size: 16),
-                  label: Text(t('bookings.cancel_booking')),
+                  label: const Text('Cancel Booking'),
                   style: TextButton.styleFrom(foregroundColor: AppColors.rejected),
                 ),
               ),
@@ -345,7 +341,7 @@ class _BookingCard extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: onRate,
                     icon: const Icon(Icons.star_rounded, size: 18),
-                    label: Text(t('bookings.rate_service')),
+                    label: const Text('Rate this Service'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFBBF24),
                       foregroundColor: AppColors.textPrimary,
@@ -441,12 +437,12 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            t('bookings.empty'),
+            'No bookings yet',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
           Text(
-            t('bookings.empty_body'),
+            'Your bookings will appear here.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

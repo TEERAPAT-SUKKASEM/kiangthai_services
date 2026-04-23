@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../data/repositories/auth_repository.dart';
 
@@ -79,9 +78,9 @@ class _LoginScreenState extends State<LoginScreen>
                             labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                             unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                             padding: const EdgeInsets.all(4),
-                            tabs: [
-                              Tab(text: t('login.tab_login')),
-                              Tab(text: t('login.tab_signup')),
+                            tabs: const [
+                              Tab(text: 'Log In'),
+                              Tab(text: 'Sign Up'),
                             ],
                           ),
                         ),
@@ -161,9 +160,9 @@ class _HeroSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 28),
-          Text(
-            t('login.hero_title'),
-            style: const TextStyle(
+          const Text(
+            'Home services,\nmade simple.',
+            style: TextStyle(
               color: Colors.white,
               fontSize: 30,
               fontWeight: FontWeight.w700,
@@ -173,7 +172,7 @@ class _HeroSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            t('login.hero_subtitle'),
+            'Book trusted technicians for AC, electrical, solar, and more.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.85),
               fontSize: 14,
@@ -219,7 +218,7 @@ class _LoginFormState extends State<_LoginForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t('common.error')}: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     } finally {
@@ -236,20 +235,22 @@ class _LoginFormState extends State<_LoginForm> {
           text: _emailController.text.trim(),
         );
         return AlertDialog(
-          title: Text(t('login.reset_password')),
+          title: const Text('Reset password'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t('login.reset_body')),
+              const Text(
+                'Enter the email on your account. We\'ll send you a reset link.',
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: t('login.email'),
-                  prefixIcon: const Icon(Icons.email_outlined),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
                 ),
                 onSubmitted: (v) =>
                     Navigator.pop(dialogContext, v.trim()),
@@ -259,12 +260,12 @@ class _LoginFormState extends State<_LoginForm> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(t('common.cancel')),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () =>
                   Navigator.pop(dialogContext, controller.text.trim()),
-              child: Text(t('login.send')),
+              child: const Text('Send'),
             ),
           ],
         );
@@ -276,11 +277,11 @@ class _LoginFormState extends State<_LoginForm> {
     try {
       await _authRepo.resetPassword(email);
       messenger.showSnackBar(
-        SnackBar(content: Text('${t('login.reset_sent_prefix')} $email')),
+        SnackBar(content: Text('Reset link sent to $email')),
       );
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('${t('common.error')}: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -294,23 +295,23 @@ class _LoginFormState extends State<_LoginForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(t('login.welcome_back'), style: Theme.of(context).textTheme.titleLarge),
+            Text('Welcome back', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
             Text(
-              t('login.log_in_to_continue'),
+              'Log in to continue',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 20),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: t('login.email'),
-                prefixIcon: const Icon(Icons.email_outlined),
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
               ),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return t('login.enter_email');
-                if (!v.contains('@')) return t('login.invalid_email');
+                if (v == null || v.trim().isEmpty) return 'Enter your email';
+                if (!v.contains('@')) return 'Invalid email address';
                 return null;
               },
             ),
@@ -319,7 +320,7 @@ class _LoginFormState extends State<_LoginForm> {
               controller: _passwordController,
               obscureText: _obscure,
               decoration: InputDecoration(
-                labelText: t('login.password'),
+                labelText: 'Password',
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -329,7 +330,7 @@ class _LoginFormState extends State<_LoginForm> {
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
-              validator: (v) => (v == null || v.isEmpty) ? t('login.enter_password') : null,
+              validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
             ),
             const SizedBox(height: 4),
             Align(
@@ -341,7 +342,7 @@ class _LoginFormState extends State<_LoginForm> {
                   minimumSize: const Size(0, 36),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: Text(t('login.forgot_password')),
+                child: const Text('Forgot password?'),
               ),
             ),
             const SizedBox(height: 14),
@@ -353,7 +354,7 @@ class _LoginFormState extends State<_LoginForm> {
                       height: 20,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                     )
-                  : Text(t('login.log_in')),
+                  : const Text('Log In'),
             ),
           ],
         ),
@@ -411,13 +412,13 @@ class _SignUpFormState extends State<_SignUpForm> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('signup.success'))),
+          const SnackBar(content: Text('Account created. Please log in.')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t('common.error')}: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     } finally {
@@ -434,42 +435,42 @@ class _SignUpFormState extends State<_SignUpForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(t('signup.create_account'), style: Theme.of(context).textTheme.titleLarge),
+            Text('Create an account', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
             Text(
-              t('signup.join'),
+              'Join Kiang Thai Service',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 20),
             TextFormField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: t('signup.full_name'),
-                prefixIcon: const Icon(Icons.person_outline_rounded),
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                prefixIcon: Icon(Icons.person_outline_rounded),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? t('signup.enter_name') : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter your name' : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: t('signup.phone'),
-                prefixIcon: const Icon(Icons.phone_outlined),
+              decoration: const InputDecoration(
+                labelText: 'Phone',
+                prefixIcon: Icon(Icons.phone_outlined),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? t('signup.enter_phone') : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter your phone' : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: t('login.email'),
-                prefixIcon: const Icon(Icons.email_outlined),
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
               ),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return t('login.enter_email');
-                if (!v.contains('@')) return t('login.invalid_email');
+                if (v == null || v.trim().isEmpty) return 'Enter your email';
+                if (!v.contains('@')) return 'Invalid email address';
                 return null;
               },
             ),
@@ -478,7 +479,7 @@ class _SignUpFormState extends State<_SignUpForm> {
               controller: _passwordController,
               obscureText: _obscure,
               decoration: InputDecoration(
-                labelText: t('login.password'),
+                labelText: 'Password',
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -489,19 +490,19 @@ class _SignUpFormState extends State<_SignUpForm> {
                 ),
               ),
               validator: (v) {
-                if (v == null || v.isEmpty) return t('signup.password_new');
-                if (v.length < 6) return t('signup.password_min');
+                if (v == null || v.isEmpty) return 'Enter a password';
+                if (v.length < 6) return 'At least 6 characters';
                 return null;
               },
             ),
             const SizedBox(height: 20),
-            Text(t('signup.i_am_a'), style: Theme.of(context).textTheme.labelMedium),
+            Text('I am a', style: Theme.of(context).textTheme.labelMedium),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: _RoleCard(
-                    label: t('common.customer'),
+                    label: 'Customer',
                     icon: Icons.person_outline_rounded,
                     selected: _selectedRole == 'customer',
                     onTap: () => setState(() => _selectedRole = 'customer'),
@@ -510,7 +511,7 @@ class _SignUpFormState extends State<_SignUpForm> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _RoleCard(
-                    label: t('common.technician'),
+                    label: 'Technician',
                     icon: Icons.build_rounded,
                     selected: _selectedRole == 'technician',
                     onTap: () => setState(() => _selectedRole = 'technician'),
@@ -527,7 +528,7 @@ class _SignUpFormState extends State<_SignUpForm> {
                       height: 20,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                     )
-                  : Text(t('signup.submit')),
+                  : const Text('Create Account'),
             ),
           ],
         ),

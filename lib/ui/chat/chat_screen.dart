@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/i18n.dart';
 import '../../data/models/message.dart';
 import '../../services/chat_unread_service.dart';
 
@@ -71,7 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _inputController.text = text;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${t('chat.failed_send')}: $e'),
+            content: Text('Failed to send message: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -134,10 +133,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
                 final raw = snapshot.data ?? [];
                 if (raw.isEmpty) {
-                  return Center(
+                  return const Center(
                     child: Text(
-                      t('chat.empty'),
-                      style: const TextStyle(color: Colors.grey),
+                      'No messages yet. Start the conversation!',
+                      style: TextStyle(color: Colors.grey),
                     ),
                   );
                 }
@@ -173,7 +172,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     minLines: 1,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: t('chat.type_message'),
+                      hintText: 'Type a message...',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,

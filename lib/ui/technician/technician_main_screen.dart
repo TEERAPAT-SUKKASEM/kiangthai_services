@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../services/chat_unread_service.dart';
 import '../../services/notification_service.dart';
@@ -50,9 +49,11 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
           callback: (payload) {
             final status = payload.newRecord['status'] as String?;
             if (status != 'pending') return;
+            final serviceType =
+                payload.newRecord['service_type'] as String? ?? 'service';
             NotificationService.showLocal(
-              title: t('tech.new_job_title'),
-              body: t('tech.new_job_body'),
+              title: 'New job available',
+              body: 'A new $serviceType booking is waiting for a technician.',
             );
           },
         )
@@ -75,7 +76,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
             final bookingId = payload.newRecord['booking_id'];
             ChatUnreadService.instance.markUnread(bookingId);
             NotificationService.showLocal(
-              title: t('chat.new_message'),
+              title: 'New message',
               body: payload.newRecord['content'] as String? ?? '',
             );
           },
@@ -100,7 +101,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('tech.job_accepted'))),
+          const SnackBar(content: Text('Job accepted')),
         );
       }
     } catch (e) {
@@ -108,7 +109,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       setState(() => _processingJobs.remove(bookingId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t('common.error')}: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -119,17 +120,17 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(t('tech.reject_confirm')),
-        content: Text(t('tech.reject_body')),
+        title: const Text('Reject this job?'),
+        content: const Text('You won\'t be able to undo this action.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(t('common.cancel')),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.rejected),
-            child: Text(t('tech.reject')),
+            child: const Text('Reject'),
           ),
         ],
       ),
@@ -146,14 +147,14 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('tech.job_rejected'))),
+          const SnackBar(content: Text('Job rejected')),
         );
       }
     } catch (e) {
       setState(() => _processingJobs.remove(bookingId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t('common.error')}: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -166,17 +167,17 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(t('tech.complete_confirm')),
-          content: Text(t('tech.complete_body')),
+          title: const Text('Complete this job?'),
+          content: const Text('Mark this job as fully completed.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(t('common.cancel')),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.completed),
-              child: Text(t('tech.complete')),
+              child: const Text('Complete'),
             ),
           ],
         ),
@@ -193,10 +194,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
 
       if (mounted) {
         final msg = switch (newStatus) {
-          'on_the_way' => t('tech.updated_on_the_way'),
-          'in_progress' => t('tech.updated_in_progress'),
-          'completed' => t('tech.updated_completed'),
-          _ => t('tech.status_updated'),
+          'on_the_way' => 'Updated: On the way to customer',
+          'in_progress' => 'Updated: Work in progress',
+          'completed' => 'Job closed. Great work!',
+          _ => 'Status updated',
         };
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
@@ -206,7 +207,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       if (isCompleting) setState(() => _processingJobs.remove(bookingId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t('common.error')}: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -215,10 +216,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   // Build job stage progress indicator
   Widget _buildStageIndicator(String status) {
     final stages = [
-      ('accepted', t('stage.accepted')),
-      ('on_the_way', t('stage.on_the_way')),
-      ('in_progress', t('stage.in_progress')),
-      ('completed', t('stage.completed')),
+      ('accepted', 'Accepted'),
+      ('on_the_way', 'On the Way'),
+      ('in_progress', 'In Progress'),
+      ('completed', 'Completed'),
     ];
     final currentIndex = stages.indexWhere((s) => s.$1 == status);
 
@@ -276,9 +277,9 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
   Widget _buildNextStageButton(Booking booking) {
     final (String label, String nextStatus, Color color) =
         switch (booking.status) {
-      'accepted' => (t('tech.on_my_way'), 'on_the_way', AppColors.onTheWay),
-      'on_the_way' => (t('tech.arrived'), 'in_progress', AppColors.inProgress),
-      'in_progress' => (t('tech.close_job'), 'completed', AppColors.completed),
+      'accepted' => ('On My Way', 'on_the_way', AppColors.onTheWay),
+      'on_the_way' => ('Arrived', 'in_progress', AppColors.inProgress),
+      'in_progress' => ('Close Job', 'completed', AppColors.completed),
       _ => ('', '', AppColors.textMuted),
     };
 
@@ -320,23 +321,20 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tCanonical(booking.serviceType, prefix: 'service'),
+                        booking.serviceType,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       if ((booking.subType ?? '').isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
-                          tCanonical(booking.subType!),
+                          booking.subType!,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
                     ],
                   ),
                 ),
-                _StatusPill(
-                  label: tCanonical(booking.status, prefix: 'status'),
-                  color: statusColor,
-                ),
+                _StatusPill(label: booking.statusLabel, color: statusColor),
               ],
             ),
             const SizedBox(height: 14),
@@ -408,7 +406,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                         side: const BorderSide(color: AppColors.border),
                       ),
                       icon: const Icon(Icons.close_rounded, size: 18),
-                      label: Text(t('tech.reject')),
+                      label: const Text('Reject'),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -417,7 +415,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _acceptJob(booking.id),
                       icon: const Icon(Icons.check_rounded, size: 18),
-                      label: Text(t('tech.accept_job')),
+                      label: const Text('Accept Job'),
                     ),
                   ),
                 ],
@@ -441,13 +439,13 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                                 bookingId: booking.id,
                                 currentUserId: tech.id,
                                 currentUserRole: 'technician',
-                                otherPersonName: booking.contactName ?? t('common.customer'),
+                                otherPersonName: booking.contactName ?? 'Customer',
                               ),
                             ),
                           );
                         },
                         icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                        label: Text(t('tech.chat')),
+                        label: const Text('Chat'),
                       ),
                     ),
                   ),
@@ -470,7 +468,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(t('common.technician')),
+          title: const Text('Technician'),
           actions: [
             IconButton(
               icon: const Icon(Icons.person_outline_rounded),
@@ -483,10 +481,10 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
             ),
             const SizedBox(width: 8),
           ],
-          bottom: TabBar(
+          bottom: const TabBar(
             tabs: [
-              Tab(text: t('tech.new_jobs')),
-              Tab(text: t('tech.my_jobs')),
+              Tab(text: 'New Jobs'),
+              Tab(text: 'My Jobs'),
             ],
           ),
         ),
@@ -507,8 +505,8 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                       }
                       final bookings = snapshot.data;
                       if (bookings == null || bookings.isEmpty) {
-                        return Center(
-                          child: Text(t('tech.no_new_jobs')),
+                        return const Center(
+                          child: Text('No new jobs available'),
                         );
                       }
                       return ListView.builder(
@@ -553,7 +551,7 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 FilterChip(
-                                  label: Text(t('tech.history_show')),
+                                  label: const Text('Show History'),
                                   selected: _showHistory,
                                   onSelected: (val) =>
                                       setState(() => _showHistory = val),
@@ -564,7 +562,11 @@ class _TechnicianMainScreenState extends State<TechnicianMainScreen> {
                           Expanded(
                             child: displayed.isEmpty
                                 ? Center(
-                                    child: Text(t('tech.no_my_jobs')),
+                                    child: Text(
+                                      _showHistory
+                                          ? 'No job history yet'
+                                          : 'No active jobs',
+                                    ),
                                   )
                                 : ListView.builder(
                                     padding: const EdgeInsets.all(10),
