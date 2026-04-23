@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/i18n.dart';
 import '../widgets/shared_booking_fields.dart';
 
 /// Configuration for a bookable service category.
@@ -215,12 +216,12 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Address saved successfully!'), backgroundColor: Colors.green),
+          SnackBar(content: Text(t('booking.address_saved')), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${t('common.error')}: $e')));
       }
     }
   }
@@ -270,14 +271,17 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
   // ---- Submit booking ----
 
   Future<void> _submitBooking() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     if (_selectedDate == null ||
         _selectedTime == null ||
         _addressController.text.isEmpty ||
         _nameController.text.isEmpty ||
         _phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all required fields', style: TextStyle(color: Colors.white)),
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(t('booking.fill_required'), style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
         ),
       );
@@ -288,8 +292,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
     if (user == null) return;
 
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saving booking...')),
+      messenger.showSnackBar(
+        SnackBar(content: Text(t('booking.saving'))),
       );
 
       final dateStr =
@@ -306,16 +310,16 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
           .neq('status', 'cancelled');
 
       if (existingBookings.isNotEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('This time slot is now full, please choose another',
-                  style: TextStyle(color: Colors.white)),
-              backgroundColor: Colors.orange,
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              t('booking.slot_full'),
+              style: const TextStyle(color: Colors.white),
             ),
-          );
-          _fetchBookedTimes(_selectedDate!);
-        }
+            backgroundColor: Colors.orange,
+          ),
+        );
+        if (mounted) _fetchBookedTimes(_selectedDate!);
         return;
       }
 
@@ -360,21 +364,17 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
         'image_url': imageUrl,
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking confirmed!', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(t('booking.confirmed'), style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
+      );
+      navigator.pop();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('${t('common.error')}: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -384,13 +384,16 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
   Widget build(BuildContext context) {
     final cfg = widget.config;
 
+    // Map serviceName → translation key for the AppBar title.
+    final titleKey = 'booking.title.${cfg.serviceName.toLowerCase().replaceAll(' ', '_')}';
+
     return Scaffold(
-      appBar: AppBar(title: Text('Book ${cfg.serviceName} Service')),
+      appBar: AppBar(title: Text(t(titleKey))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // --- Sub-type selector ---
-          const Text('Service Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(t('booking.service_type'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 10),
           GridView.builder(
             shrinkWrap: true,
@@ -408,7 +411,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
               return ChoiceChip(
                 label: Center(
                   child: Text(
-                    sub,
+                    tCanonical(sub),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -440,8 +443,10 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${cfg.serviceName} Details',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '${tCanonical(cfg.serviceName, prefix: 'service')} ${t('booking.details_suffix')}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 10),
                   ...cfg.extraFields.map((field) {
                     final key = field['key'] as String;
@@ -454,14 +459,17 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: DropdownButtonFormField<String>(
                           decoration: InputDecoration(
-                            labelText: label,
+                            labelText: tCanonical(label, prefix: 'field'),
                             border: const OutlineInputBorder(),
                             filled: true,
                             fillColor: Colors.white,
                           ),
                           initialValue: _dropdownValues[key],
                           items: options
-                              .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                              .map((v) => DropdownMenuItem(
+                                    value: v,
+                                    child: Text(tCanonical(v, prefix: 'opt')),
+                                  ))
                               .toList(),
                           onChanged: (v) => setState(() => _dropdownValues[key] = v!),
                         ),
@@ -473,7 +481,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
                           controller: _extraControllers[key],
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: label,
+                            labelText: tCanonical(label, prefix: 'field'),
                             border: const OutlineInputBorder(),
                             filled: true,
                             fillColor: Colors.white,
@@ -488,7 +496,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
                           controller: _extraControllers[key],
                           maxLines: 3,
                           decoration: InputDecoration(
-                            labelText: label,
+                            labelText: tCanonical(label, prefix: 'field'),
                             border: const OutlineInputBorder(),
                             filled: true,
                             fillColor: Colors.white,
@@ -511,7 +519,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
               color: _hasImage ? Colors.green : cfg.themeColor,
             ),
             label: Text(
-              _hasImage ? 'Image attached (tap to change)' : 'Take photo / Attach job site image',
+              _hasImage ? t('booking.image_attached') : t('booking.take_photo'),
             ),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
@@ -549,8 +557,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: _submitBooking,
-            child: const Text('Confirm Booking',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            child: Text(t('booking.confirm_booking'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

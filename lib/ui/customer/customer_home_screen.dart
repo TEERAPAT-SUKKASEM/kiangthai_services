@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import 'air_booking_screen.dart';
 import 'service_booking_screen.dart';
@@ -8,13 +9,15 @@ import 'profile_settings_screen.dart';
 class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
 
+  // `name` is the canonical identifier used to pick a ServiceConfig and
+  // record bookings. `labelKey` is the i18n key used for display only.
   static const List<_ServiceTile> _services = [
-    _ServiceTile(name: 'AC', icon: Icons.ac_unit_rounded, tint: Color(0xFF0EA5E9)),
-    _ServiceTile(name: 'Electrical', icon: Icons.electrical_services_rounded, tint: Color(0xFFF59E0B)),
-    _ServiceTile(name: 'Solar', icon: Icons.wb_sunny_rounded, tint: Color(0xFFF97316)),
-    _ServiceTile(name: 'CCTV', icon: Icons.videocam_rounded, tint: Color(0xFFEF4444)),
-    _ServiceTile(name: 'Water Pump', icon: Icons.water_drop_rounded, tint: Color(0xFF06B6D4)),
-    _ServiceTile(name: 'Electronics', icon: Icons.devices_other_rounded, tint: Color(0xFF8B5CF6)),
+    _ServiceTile(name: 'AC', labelKey: 'service.ac', icon: Icons.ac_unit_rounded, tint: Color(0xFF0EA5E9)),
+    _ServiceTile(name: 'Electrical', labelKey: 'service.electrical', icon: Icons.electrical_services_rounded, tint: Color(0xFFF59E0B)),
+    _ServiceTile(name: 'Solar', labelKey: 'service.solar', icon: Icons.wb_sunny_rounded, tint: Color(0xFFF97316)),
+    _ServiceTile(name: 'CCTV', labelKey: 'service.cctv', icon: Icons.videocam_rounded, tint: Color(0xFFEF4444)),
+    _ServiceTile(name: 'Water Pump', labelKey: 'service.water_pump', icon: Icons.water_drop_rounded, tint: Color(0xFF06B6D4)),
+    _ServiceTile(name: 'Electronics', labelKey: 'service.electronics', icon: Icons.devices_other_rounded, tint: Color(0xFF8B5CF6)),
   ];
 
   static final Map<String, ServiceConfig> _serviceConfigs = {
@@ -60,14 +63,14 @@ class CustomerHomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hello, $greetingName',
+                            '${t('home.greeting')}, $greetingName',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: AppColors.textSecondary,
                                 ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'What do you need today?',
+                            t('home.subtitle'),
                             style: Theme.of(context).textTheme.displayMedium,
                           ),
                         ],
@@ -130,9 +133,15 @@ class CustomerHomeScreen extends StatelessWidget {
 
 class _ServiceTile {
   final String name;
+  final String labelKey;
   final IconData icon;
   final Color tint;
-  const _ServiceTile({required this.name, required this.icon, required this.tint});
+  const _ServiceTile({
+    required this.name,
+    required this.labelKey,
+    required this.icon,
+    required this.tint,
+  });
 }
 
 class _ServiceCard extends StatelessWidget {
@@ -168,7 +177,7 @@ class _ServiceCard extends StatelessWidget {
                   child: Icon(tile.icon, color: tile.tint, size: 24),
                 ),
                 const Spacer(),
-                Text(tile.name, style: Theme.of(context).textTheme.titleMedium),
+                Text(t(tile.labelKey), style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 2),
                 Text(
                   'Book now',

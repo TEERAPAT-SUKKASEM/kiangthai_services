@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/i18n.dart';
 import '../widgets/shared_booking_fields.dart';
 
 class AirBookingScreen extends StatefulWidget {
@@ -136,13 +137,13 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
       });
 
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Address saved successfully!'),
+        SnackBar(
+          content: Text(t('booking.address_saved')),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('${t('common.error')}: $e')));
     }
   }
 
@@ -188,13 +189,13 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Book AC Service')),
+      appBar: AppBar(title: Text(t('booking.title.ac'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Service Type',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          Text(
+            t('booking.service_type'),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 10),
 
@@ -214,7 +215,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               return ChoiceChip(
                 label: Center(
                   child: Text(
-                    service,
+                    tCanonical(service),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -246,15 +247,15 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'AC Details',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Text(
+                    '${tCanonical('AC')} ${t('booking.details_suffix')}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'BTU Size',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('ac.btu_size'),
+                      border: const OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -263,7 +264,11 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                         .map(
                           (value) => DropdownMenuItem(
                             value: value,
-                            child: Text(value),
+                            child: Text(
+                              value == 'Unknown / Not Sure'
+                                  ? t('ac.btu_unknown')
+                                  : value,
+                            ),
                           ),
                         )
                         .toList(),
@@ -273,9 +278,9 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   const SizedBox(height: 15),
                   TextField(
                     controller: _countController,
-                    decoration: const InputDecoration(
-                      labelText: 'Number of Units',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('ac.units'),
+                      border: const OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -296,17 +301,17 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Repair Details',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Text(
+                    t('ac.repair_details'),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _symptomsController,
                     maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Describe the issue (e.g. not cooling, water dripping)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('ac.issue_hint'),
+                      border: const OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -326,8 +331,8 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
             ),
             label: Text(
               _hasImage
-                  ? 'Image attached (tap to change)'
-                  : 'Take photo / Attach job site image',
+                  ? t('booking.image_attached')
+                  : t('booking.take_photo'),
             ),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
@@ -380,10 +385,10 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                   _nameController.text.isEmpty ||
                   _phoneController.text.isEmpty) {
                 messenger.showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                      'Please fill in all required fields',
-                      style: TextStyle(color: Colors.white),
+                      t('booking.fill_required'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     backgroundColor: Colors.red,
                   ),
@@ -393,10 +398,10 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               if (_selectedService == 'AC Repair' &&
                   _symptomsController.text.trim().isEmpty) {
                 messenger.showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                      'Please describe the issue',
-                      style: TextStyle(color: Colors.white),
+                      t('ac.describe_issue'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     backgroundColor: Colors.orange,
                   ),
@@ -409,7 +414,7 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
 
               try {
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Saving booking...')),
+                  SnackBar(content: Text(t('booking.saving'))),
                 );
                 final dateStr =
                     '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
@@ -424,10 +429,10 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                     .neq('status', 'cancelled');
                 if (existingBookings.isNotEmpty) {
                   messenger.showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        'This time slot is now full, please choose another',
-                        style: TextStyle(color: Colors.white),
+                        t('booking.slot_full'),
+                        style: const TextStyle(color: Colors.white),
                       ),
                       backgroundColor: Colors.orange,
                     ),
@@ -479,10 +484,10 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 });
 
                 messenger.showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                      'Booking confirmed!',
-                      style: TextStyle(color: Colors.white),
+                      t('booking.confirmed'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     backgroundColor: Colors.green,
                   ),
@@ -491,15 +496,15 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
               } catch (e) {
                 messenger.showSnackBar(
                   SnackBar(
-                    content: Text('Error: $e'),
+                    content: Text('${t('common.error')}: $e'),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
-            child: const Text(
-              'Confirm Booking',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            child: Text(
+              t('booking.confirm_booking'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/i18n.dart';
 import '../../data/models/profile.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load profile: $e')),
+          SnackBar(content: Text('${t('settings.profile_load_failed')}: $e')),
         );
       }
       setState(() => _isLoading = false);
@@ -73,8 +74,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile saved successfully!'),
+          SnackBar(
+            content: Text(t('settings.profile_saved')),
             backgroundColor: Colors.green,
           ),
         );
@@ -82,7 +83,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save profile: $e')),
+          SnackBar(content: Text('${t('settings.profile_save_failed')}: $e')),
         );
       }
     } finally {
@@ -99,19 +100,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'Edit Address' : 'Add New Address'),
+        title: Text(
+          isEditing ? t('settings.edit_address') : t('settings.new_address'),
+        ),
         content: TextField(
           controller: addressController,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Enter your address',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: t('settings.enter_address'),
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              t('common.cancel'),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             onPressed: () =>
@@ -120,7 +126,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
             ),
-            child: const Text('OK'),
+            child: Text(t('common.ok')),
           ),
         ],
       ),
@@ -141,18 +147,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Delete'),
-        content: const Text('Remove this address from your list?'),
+        title: Text(t('settings.confirm_delete')),
+        content: Text(t('settings.confirm_delete_body')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              t('common.cancel'),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            child: Text(
+              t('common.delete'),
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -172,15 +181,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile Settings')),
+      appBar: AppBar(title: Text(t('settings.title'))),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                const Text(
-                  'Personal Information',
-                  style: TextStyle(
+                Text(
+                  t('settings.personal_info'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
                     color: Colors.blueAccent,
@@ -189,31 +198,35 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 const SizedBox(height: 15),
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
+                  decoration: InputDecoration(
+                    labelText: t('settings.full_name'),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.person),
                   ),
                 ),
                 const SizedBox(height: 15),
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.phone),
+                  decoration: InputDecoration(
+                    labelText: t('settings.phone'),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.phone),
                   ),
                 ),
+
+                const Divider(height: 40, thickness: 2),
+
+                const _LanguageToggle(),
 
                 const Divider(height: 40, thickness: 2),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Saved Addresses',
-                      style: TextStyle(
+                    Text(
+                      t('settings.saved_addresses'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                         color: Colors.blueAccent,
@@ -222,19 +235,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     TextButton.icon(
                       onPressed: _showAddressDialog,
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Address'),
+                      label: Text(t('settings.add_address')),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
 
                 if (_savedAddresses.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(20.0),
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
                     child: Center(
                       child: Text(
-                        'No saved addresses yet',
-                        style: TextStyle(color: Colors.grey),
+                        t('settings.no_addresses'),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ),
                   )
@@ -296,9 +309,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   onPressed: _isSaving ? null : _saveProfile,
                   child: _isSaving
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save All Changes',
-                          style: TextStyle(
+                      : Text(
+                          t('settings.save_all'),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -317,13 +330,59 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     ),
                   ),
                   icon: const Icon(Icons.logout),
-                  label: const Text('Sign Out'),
+                  label: Text(t('settings.sign_out')),
                   onPressed: _logout,
                 ),
 
                 const SizedBox(height: 20),
               ],
             ),
+    );
+  }
+}
+
+class _LanguageToggle extends StatelessWidget {
+  const _LanguageToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: I18n.instance.language,
+      builder: (context, lang, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('settings.language'),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.blueAccent,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<String>(
+              segments: [
+                ButtonSegment(
+                  value: 'en',
+                  label: Text(t('settings.language_english')),
+                  icon: const Icon(Icons.language),
+                ),
+                ButtonSegment(
+                  value: 'th',
+                  label: Text(t('settings.language_thai')),
+                  icon: const Icon(Icons.translate),
+                ),
+              ],
+              selected: {lang},
+              onSelectionChanged: (values) {
+                final next = values.first;
+                if (next != lang) I18n.instance.setLanguage(next);
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

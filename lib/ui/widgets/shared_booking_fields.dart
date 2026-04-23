@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/i18n.dart';
 import '../../core/theme.dart';
 
 class SharedBookingFields extends StatelessWidget {
@@ -63,7 +64,7 @@ class SharedBookingFields extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        _SectionTitle('Location & Contact'),
+        _SectionTitle(t('booking.location_contact')),
         const SizedBox(height: 12),
 
         Row(
@@ -71,9 +72,9 @@ class SharedBookingFields extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: Icon(Icons.person_outline_rounded),
+                decoration: InputDecoration(
+                  labelText: t('booking.full_name'),
+                  prefixIcon: const Icon(Icons.person_outline_rounded),
                 ),
               ),
             ),
@@ -82,9 +83,9 @@ class SharedBookingFields extends StatelessWidget {
               child: TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  prefixIcon: Icon(Icons.phone_outlined),
+                decoration: InputDecoration(
+                  labelText: t('booking.phone'),
+                  prefixIcon: const Icon(Icons.phone_outlined),
                 ),
               ),
             ),
@@ -94,9 +95,9 @@ class SharedBookingFields extends StatelessWidget {
 
         if (savedAddresses.isNotEmpty) ...[
           DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Saved address',
-              prefixIcon: Icon(Icons.bookmark_outline_rounded),
+            decoration: InputDecoration(
+              labelText: t('booking.saved_address'),
+              prefixIcon: const Icon(Icons.bookmark_outline_rounded),
             ),
             isExpanded: true,
             initialValue: savedAddresses.contains(addressController.text)
@@ -117,9 +118,9 @@ class SharedBookingFields extends StatelessWidget {
           controller: addressController,
           minLines: 2,
           maxLines: null,
-          decoration: const InputDecoration(
-            labelText: 'Job site address',
-            prefixIcon: Icon(Icons.location_on_outlined),
+          decoration: InputDecoration(
+            labelText: t('booking.job_site_address'),
+            prefixIcon: const Icon(Icons.location_on_outlined),
           ),
         ),
 
@@ -131,14 +132,14 @@ class SharedBookingFields extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onSaveAddressTap,
                 icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                label: const Text('Save address'),
+                label: Text(t('booking.save_address')),
                 style: TextButton.styleFrom(foregroundColor: AppColors.completed),
               ),
             ),
           ),
 
         const SizedBox(height: 24),
-        _SectionTitle('Select Date & Time'),
+        _SectionTitle(t('booking.select_date_time')),
         const SizedBox(height: 12),
 
         Container(
@@ -157,7 +158,7 @@ class SharedBookingFields extends StatelessWidget {
         const SizedBox(height: 20),
 
         Text(
-          'Preferred Time',
+          t('booking.preferred_time'),
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 10),
@@ -186,9 +187,9 @@ class SharedBookingFields extends StatelessWidget {
                   unselectedLabelColor: AppColors.textMuted,
                   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                  tabs: const [
-                    Tab(text: 'Morning'),
-                    Tab(text: 'Afternoon'),
+                  tabs: [
+                    Tab(text: t('booking.morning')),
+                    Tab(text: t('booking.afternoon')),
                   ],
                 ),
               ),
@@ -256,7 +257,7 @@ class SharedBookingFields extends StatelessWidget {
               : () {
                   if (selectedDate == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a date first')),
+                      SnackBar(content: Text(t('booking.select_date_first'))),
                     );
                     return;
                   }

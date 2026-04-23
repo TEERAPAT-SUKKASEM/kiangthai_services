@@ -15,6 +15,10 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS fcm_token TEXT;
 
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en'
+    CHECK (language IN ('en', 'th'));
+
 
 -- =============================================================================
 -- SECTION 2: Enable Row Level Security
@@ -198,9 +202,11 @@ CREATE POLICY "bookings: admins can update any booking"
 -- SECTION 5: messages table (chat feature)
 -- =============================================================================
 
+-- NOTE: booking_id is BIGINT to match public.bookings.id (auto-increment bigint).
+-- If your bookings.id is UUID instead, change booking_id below to UUID.
 CREATE TABLE IF NOT EXISTS public.messages (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  booking_id UUID        NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  booking_id BIGINT      NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
   sender_id  UUID        NOT NULL REFERENCES auth.users(id),
   sender_role TEXT       NOT NULL CHECK (sender_role IN ('customer', 'technician', 'admin')),
   content    TEXT        NOT NULL,
