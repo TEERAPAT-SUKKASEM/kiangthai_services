@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import 'pressable_scale.dart';
 
 class SharedBookingFields extends StatelessWidget {
   final DateTime? selectedDate;
@@ -250,7 +251,7 @@ class SharedBookingFields extends StatelessWidget {
         final isBooked = bookedTimes.contains(slot) || _isPastSlot(slot);
         final isSelected = selectedTime == slot;
 
-        return InkWell(
+        return PressableScale(
           onTap: isBooked
               ? null
               : () {
@@ -262,8 +263,9 @@ class SharedBookingFields extends StatelessWidget {
                   }
                   onTimeSelected(slot);
                 },
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
+          child: AnimatedContainer(
+            duration: AppDurations.fast,
+            curve: Curves.easeOutCubic,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isSelected
@@ -271,10 +273,17 @@ class SharedBookingFields extends StatelessWidget {
                   : (isBooked ? AppColors.fieldFill : AppColors.surface),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.brand
-                    : (isBooked ? AppColors.border : AppColors.border),
+                color: isSelected ? AppColors.brand : AppColors.border,
               ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.brand.withValues(alpha: 0.18),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
             ),
             child: Text(
               slot,

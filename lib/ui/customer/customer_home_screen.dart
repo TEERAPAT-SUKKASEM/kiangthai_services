@@ -1,4 +1,6 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../widgets/pressable_scale.dart';
@@ -26,18 +28,11 @@ class CustomerHomeScreen extends StatelessWidget {
     'Electronics': electronicsConfig,
   };
 
-  void _onServiceTap(BuildContext context, _ServiceTile service) {
-    if (service.name == 'AC') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const AirBookingScreen()));
-    } else {
-      final config = _serviceConfigs[service.name];
-      if (config != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ServiceBookingScreen(config: config)),
-        );
-      }
-    }
+  Widget _destinationFor(_ServiceTile service) {
+    if (service.name == 'AC') return const AirBookingScreen();
+    final config = _serviceConfigs[service.name];
+    if (config != null) return ServiceBookingScreen(config: config);
+    return const SizedBox.shrink();
   }
 
   @override
@@ -116,7 +111,22 @@ class CustomerHomeScreen extends StatelessWidget {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final s = _services[index];
-                    return _ServiceCard(tile: s, onTap: () => _onServiceTap(context, s));
+                    return _ServiceCard(
+                      tile: s,
+                      destinationBuilder: () => _destinationFor(s),
+                    )
+                        .animate()
+                        .fadeIn(
+                          delay: Duration(milliseconds: 60 * index),
+                          duration: const Duration(milliseconds: 380),
+                        )
+                        .slideY(
+                          begin: 0.12,
+                          end: 0,
+                          delay: Duration(milliseconds: 60 * index),
+                          duration: const Duration(milliseconds: 380),
+                          curve: Curves.easeOutCubic,
+                        );
                   },
                   childCount: _services.length,
                 ),
@@ -144,39 +154,29 @@ class _ServiceTile {
 
 class _ServiceCard extends StatelessWidget {
   final _ServiceTile tile;
-  final VoidCallback onTap;
-  const _ServiceCard({required this.tile, required this.onTap});
+  final Widget Function() destinationBuilder;
+  const _ServiceCard({required this.tile, required this.destinationBuilder});
 
   @override
   Widget build(BuildContext context) {
-    final popularShadow = tile.popular
-        ? [
-            BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.25),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-              spreadRadius: -4,
-            ),
-            BoxShadow(
-              color: AppColors.brand.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ]
-        : AppShadows.soft;
-
-    return PressableScale(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: tile.popular ? AppColors.accent : AppColors.border.withValues(alpha: 0.6),
-            width: tile.popular ? 1.5 : 1,
-          ),
-          boxShadow: popularShadow,
+    return OpenContainer(
+      transitionType: ContainerTransitionType.fadeThrough,
+      transitionDuration: AppDurations.slow,
+      closedElevation: tile.popular ? 3 : 0.5,
+      closedColor: AppColors.surface,
+      openColor: AppColors.background,
+      closedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: tile.popular
+              ? AppColors.accent
+              : AppColors.border.withValues(alpha: 0.6),
+          width: tile.popular ? 1.5 : 1,
         ),
+      ),
+      openBuilder: (context, _) => destinationBuilder(),
+      closedBuilder: (context, open) => PressableScale(
+        onTap: open,
         child: Stack(
           children: [
             Padding(
@@ -209,7 +209,8 @@ class _ServiceCard extends StatelessWidget {
                     child: Icon(tile.icon, color: tile.tint, size: 24),
                   ),
                   const Spacer(),
-                  Text(tile.name, style: Theme.of(context).textTheme.titleMedium),
+                  Text(tile.name,
+                      style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 2),
                   Text(
                     'Book now',

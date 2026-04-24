@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/theme.dart';
 import '../widgets/shared_booking_fields.dart';
 
 class AirBookingScreen extends StatefulWidget {
@@ -50,23 +52,30 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
 
   List<String> _bookedTimes = [];
   bool _isLoadingTimes = false;
+  Timer? _addressDebounce;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserProfile(); // load profile data as soon as screen opens
+    _fetchUserProfile();
+    _addressController.addListener(_onAddressChanged);
+  }
 
-    // Listen for address input: show save button if typed value is not in saved list
-    _addressController.addListener(() {
+  void _onAddressChanged() {
+    _addressDebounce?.cancel();
+    _addressDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
       final text = _addressController.text.trim();
-      setState(() {
-        _isNewAddress = text.isNotEmpty && !_savedAddresses.contains(text);
-      });
+      final isNew = text.isNotEmpty && !_savedAddresses.contains(text);
+      if (isNew == _isNewAddress) return;
+      setState(() => _isNewAddress = isNew);
     });
   }
 
   @override
   void dispose() {
+    _addressDebounce?.cancel();
+    _addressController.removeListener(_onAddressChanged);
     _countController.dispose();
     _symptomsController.dispose();
     _nameController.dispose();
@@ -185,12 +194,139 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
     }
   }
 
+  Future<void> _submitBooking() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (_selectedDate == null ||
+        _selectedTime == null ||
+        _addressController.text.isEmpty ||
+        _nameController.text.isEmpty ||
+        _phoneController.text.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill in all required fields',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_selectedService == 'AC Repair' &&
+        _symptomsController.text.trim().isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please describe the issue',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Saving booking...')),
+      );
+      final dateStr =
+          '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+      final timeStr = '$_selectedTime:00';
+
+      final existingBookings = await Supabase.instance.client
+          .from('bookings')
+          .select('id')
+          .eq('booking_date', dateStr)
+          .eq('booking_time', timeStr)
+          .eq('service_type', 'AC')
+          .neq('status', 'cancelled');
+      if (existingBookings.isNotEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'This time slot is now full, please choose another',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        if (mounted) _fetchBookedTimes(_selectedDate!);
+        return;
+      }
+
+      String? imageUrl;
+      if (_pickedImage != null && _imageBytes != null) {
+        final fileExt = _pickedImage!.name.split('.').last.isEmpty
+            ? 'png'
+            : _pickedImage!.name.split('.').last;
+        final filePath =
+            '${user.id}/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+        await Supabase.instance.client.storage
+            .from('booking_images')
+            .uploadBinary(
+              filePath,
+              _imageBytes!,
+              fileOptions: FileOptions(contentType: 'image/$fileExt'),
+            );
+        imageUrl = Supabase.instance.client.storage
+            .from('booking_images')
+            .getPublicUrl(filePath);
+      }
+
+      await Supabase.instance.client.from('bookings').insert({
+        'customer_id': user.id,
+        'service_type': 'AC',
+        'service_details': {
+          'sub_type': _selectedService,
+          'btu': _selectedService == 'AC Cleaning' ? _selectedBtu : null,
+          'count': _selectedService == 'AC Cleaning'
+              ? _countController.text
+              : null,
+          'symptoms': _selectedService == 'AC Repair'
+              ? _symptomsController.text
+              : null,
+          'contact_name': _nameController.text,
+          'contact_phone': _phoneController.text,
+          'address': _addressController.text,
+        },
+        'booking_date': dateStr,
+        'booking_time': timeStr,
+        'status': 'pending',
+        'image_url': imageUrl,
+      });
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Booking confirmed!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      navigator.pop();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Book AC Service')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
           const Text(
             'Service Type',
@@ -362,147 +498,33 @@ class _AirBookingScreenState extends State<AirBookingScreen> {
                 setState(() => _selectedTime = newTime),
           ),
 
-          const SizedBox(height: 30),
-
-          ElevatedButton(
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: const Border(top: BorderSide(color: AppColors.border, width: 1)),
+            boxShadow: AppShadows.lifted,
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              backgroundColor: Colors.blue,
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: AppColors.brand,
               foregroundColor: Colors.white,
+              shadowColor: AppColors.brand.withValues(alpha: 0.45),
+              elevation: 4,
             ),
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final navigator = Navigator.of(context);
-
-              if (_selectedDate == null ||
-                  _selectedTime == null ||
-                  _addressController.text.isEmpty ||
-                  _nameController.text.isEmpty ||
-                  _phoneController.text.isEmpty) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Please fill in all required fields',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              if (_selectedService == 'AC Repair' &&
-                  _symptomsController.text.trim().isEmpty) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Please describe the issue',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-                return;
-              }
-
-              final user = Supabase.instance.client.auth.currentUser;
-              if (user == null) return;
-
-              try {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Saving booking...')),
-                );
-                final dateStr =
-                    '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
-                final timeStr = '$_selectedTime:00';
-
-                final existingBookings = await Supabase.instance.client
-                    .from('bookings')
-                    .select('id')
-                    .eq('booking_date', dateStr)
-                    .eq('booking_time', timeStr)
-                    .eq('service_type', 'AC')
-                    .neq('status', 'cancelled');
-                if (existingBookings.isNotEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'This time slot is now full, please choose another',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  if (mounted) _fetchBookedTimes(_selectedDate!);
-                  return;
-                }
-
-                String? imageUrl;
-                if (_pickedImage != null && _imageBytes != null) {
-                  final fileExt = _pickedImage!.name.split('.').last.isEmpty
-                      ? 'png'
-                      : _pickedImage!.name.split('.').last;
-                  final filePath =
-                      '${user.id}/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-                  await Supabase.instance.client.storage
-                      .from('booking_images')
-                      .uploadBinary(
-                        filePath,
-                        _imageBytes!,
-                        fileOptions: FileOptions(contentType: 'image/$fileExt'),
-                      );
-                  imageUrl = Supabase.instance.client.storage
-                      .from('booking_images')
-                      .getPublicUrl(filePath);
-                }
-
-                // Pack contact info into JSONB so technician sees exact details
-                await Supabase.instance.client.from('bookings').insert({
-                  'customer_id': user.id,
-                  'service_type': 'AC',
-                  'service_details': {
-                    'sub_type': _selectedService,
-                    'btu': _selectedService == 'AC Cleaning' ? _selectedBtu : null,
-                    'count': _selectedService == 'AC Cleaning'
-                        ? _countController.text
-                        : null,
-                    'symptoms': _selectedService == 'AC Repair'
-                        ? _symptomsController.text
-                        : null,
-                    'contact_name': _nameController.text,
-                    'contact_phone': _phoneController.text,
-                    'address': _addressController.text,
-                  },
-                  'booking_date': dateStr,
-                  'booking_time': timeStr,
-                  'status': 'pending',
-                  'image_url': imageUrl,
-                });
-
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Booking confirmed!',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                navigator.pop();
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text(
+            onPressed: _submitBooking,
+            icon: const Icon(Icons.check_circle_rounded, size: 20),
+            label: const Text(
               'Confirm Booking',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.2),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

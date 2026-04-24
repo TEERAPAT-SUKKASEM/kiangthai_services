@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/theme.dart';
 import '../widgets/shared_booking_fields.dart';
 
 /// Configuration for a bookable service category.
@@ -132,13 +134,13 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
 
   List<String> _bookedTimes = [];
   bool _isLoadingTimes = false;
+  Timer? _addressDebounce;
 
   @override
   void initState() {
     super.initState();
     _selectedSubType = widget.config.subTypes.first;
 
-    // Initialise controllers / default values for extra fields
     for (final field in widget.config.extraFields) {
       final key = field['key'] as String;
       if (field['type'] == 'dropdown') {
@@ -149,17 +151,24 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
     }
 
     _fetchUserProfile();
+    _addressController.addListener(_onAddressChanged);
+  }
 
-    _addressController.addListener(() {
+  void _onAddressChanged() {
+    _addressDebounce?.cancel();
+    _addressDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
       final text = _addressController.text.trim();
-      setState(() {
-        _isNewAddress = text.isNotEmpty && !_savedAddresses.contains(text);
-      });
+      final isNew = text.isNotEmpty && !_savedAddresses.contains(text);
+      if (isNew == _isNewAddress) return;
+      setState(() => _isNewAddress = isNew);
     });
   }
 
   @override
   void dispose() {
+    _addressDebounce?.cancel();
+    _addressController.removeListener(_onAddressChanged);
     for (final c in _extraControllers.values) {
       c.dispose();
     }
@@ -387,7 +396,7 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('Book ${cfg.serviceName} Service')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
           // --- Sub-type selector ---
           const Text('Service Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -539,20 +548,31 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
             onTimeSelected: (newTime) => setState(() => _selectedTime = newTime),
           ),
 
-          const SizedBox(height: 30),
-
-          // --- Submit button ---
-          ElevatedButton(
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: const Border(top: BorderSide(color: AppColors.border, width: 1)),
+            boxShadow: AppShadows.lifted,
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
+              minimumSize: const Size.fromHeight(52),
               backgroundColor: cfg.themeColor,
               foregroundColor: Colors.white,
+              shadowColor: cfg.themeColor.withValues(alpha: 0.45),
+              elevation: 4,
             ),
             onPressed: _submitBooking,
-            child: const Text('Confirm Booking',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.check_circle_rounded, size: 20),
+            label: const Text('Confirm Booking',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.2)),
           ),
-        ],
+        ),
       ),
     );
   }

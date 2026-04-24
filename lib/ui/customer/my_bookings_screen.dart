@@ -1,4 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../data/models/booking.dart';
@@ -37,66 +39,113 @@ class MyBookingsScreen extends StatelessWidget {
     int selectedRating = 0;
     final reviewController = TextEditingController();
 
-    await showDialog(
+    await showGeneralDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Rate this Service'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'How was your experience?',
-                style: Theme.of(ctx).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (i) {
-                  final star = i + 1;
-                  return IconButton(
-                    icon: Icon(
-                      star <= selectedRating ? Icons.star_rounded : Icons.star_border_rounded,
-                      color: const Color(0xFFFBBF24),
-                      size: 38,
-                    ),
-                    onPressed: () => setDialogState(() => selectedRating = star),
-                  );
-                }),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: reviewController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Leave a comment (optional)',
+      barrierDismissible: true,
+      barrierLabel: 'Rate service',
+      barrierColor: Colors.black54,
+      transitionDuration: AppDurations.med,
+      pageBuilder: (ctx, _, _) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Material(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadii.xl),
+                elevation: 8,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rate this Service',
+                        style: Theme.of(ctx).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'How was your experience?',
+                        style: Theme.of(ctx).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (i) {
+                          final star = i + 1;
+                          final active = star <= selectedRating;
+                          return IconButton(
+                            splashRadius: 24,
+                            icon: AnimatedScale(
+                              duration: AppDurations.fast,
+                              curve: Curves.easeOutBack,
+                              scale: active ? 1.15 : 1.0,
+                              child: Icon(
+                                active
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color: const Color(0xFFFBBF24),
+                                size: 36,
+                              ),
+                            ),
+                            onPressed: () =>
+                                setDialogState(() => selectedRating = star),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: reviewController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          hintText: 'Leave a comment (optional)',
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 4),
+                          ElevatedButton.icon(
+                            onPressed: selectedRating == 0
+                                ? null
+                                : () {
+                                    Navigator.pop(ctx);
+                                    _submitRating(
+                                      context,
+                                      bookingId,
+                                      selectedRating,
+                                      reviewController.text.trim(),
+                                    );
+                                  },
+                            icon: const Icon(Icons.send_rounded, size: 16),
+                            label: const Text('Submit'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: selectedRating == 0
-                  ? null
-                  : () {
-                      Navigator.pop(dialogContext);
-                      _submitRating(
-                        context,
-                        bookingId,
-                        selectedRating,
-                        reviewController.text.trim(),
-                      );
-                    },
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
+      transitionBuilder: (ctx, anim, _, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
 
     reviewController.dispose();
@@ -163,7 +212,7 @@ class MyBookingsScreen extends StatelessWidget {
                   .order('created_at', ascending: false),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const _BookingsSkeleton();
                 }
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -183,6 +232,7 @@ class MyBookingsScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final booking = bookings[index];
                     return _BookingCard(
+                      key: ValueKey(booking.id),
                       booking: booking,
                       userId: user.id,
                       onCancel: () => _showCancelDialog(context, booking.id),
@@ -202,6 +252,7 @@ class _BookingCard extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onRate;
   const _BookingCard({
+    super.key,
     required this.booking,
     required this.userId,
     required this.onCancel,
@@ -211,7 +262,13 @@ class _BookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCancelled = booking.status == 'cancelled' || booking.status == 'rejected';
-    final statusColor = AppColors.forStatus(booking.status);
+    final createdAt = DateTime.tryParse(booking.createdAt)?.toLocal();
+    final ageMinutes = createdAt != null
+        ? DateTime.now().difference(createdAt).inMinutes
+        : 0;
+    final isUrgent = booking.status == 'pending' && ageMinutes > 5;
+    final statusColor =
+        isUrgent ? AppColors.urgentPending : AppColors.forStatus(booking.status);
 
     return Card(
       child: Padding(
@@ -253,7 +310,10 @@ class _BookingCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                _StatusPill(label: booking.statusLabel, color: statusColor),
+                _StatusPill(
+                  label: isUrgent ? 'Still waiting…' : booking.statusLabel,
+                  color: statusColor,
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -274,20 +334,22 @@ class _BookingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: Opacity(
                   opacity: isCancelled ? 0.4 : 1.0,
-                  child: Image.network(
-                    booking.imageUrl!,
+                  child: CachedNetworkImage(
+                    imageUrl: booking.imageUrl!,
                     width: double.infinity,
                     height: 160,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
+                    memCacheHeight: 360,
+                    fadeInDuration: AppDurations.med,
+                    placeholder: (context, url) => Skeletonizer.zone(
+                      enabled: true,
+                      child: Container(
                         height: 160,
-                        color: AppColors.fieldFill,
-                        child: const Center(child: CircularProgressIndicator()),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) => Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(color: AppColors.fieldFill),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
                       height: 160,
                       color: AppColors.fieldFill,
                       child: const Icon(Icons.broken_image_outlined, color: AppColors.textMuted),
@@ -423,29 +485,111 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppColors.fieldFill,
-              borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 86,
+              height: 86,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.tint(AppColors.brand, 0.14),
+                    AppColors.tint(AppColors.accent, 0.10),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AppShadows.soft,
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.brand,
+                size: 38,
+              ),
             ),
-            child: const Icon(Icons.inbox_rounded, color: AppColors.textMuted, size: 32),
+            const SizedBox(height: 18),
+            Text(
+              'No bookings yet',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Browse services and book your first one.\nYour history will appear here.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textMuted,
+                    height: 1.5,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BookingsSkeleton extends StatelessWidget {
+  const _BookingsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        itemCount: 3,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, _) => Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.fieldFill,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Air Conditioning Service',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 4),
+                          Text('Sub-service placeholder',
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 90,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: AppColors.fieldFill,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text('Jan 1 2026 · 10:00',
+                    style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'No bookings yet',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Your bookings will appear here.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+        ),
       ),
     );
   }

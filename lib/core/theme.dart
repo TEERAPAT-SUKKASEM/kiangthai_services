@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   static const brand = Color(0xFF0D264B);
@@ -20,6 +21,7 @@ class AppColors {
   static const inProgress = Color(0xFF8B5CF6);
   static const completed = Color(0xFF10B981);
   static const rejected = Color(0xFFEF4444);
+  static const urgentPending = Color(0xFFDC2626);
 
   static Color forStatus(String? status) {
     return switch (status) {
@@ -87,6 +89,19 @@ class AppShadows {
   ];
 }
 
+class AppRadii {
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 24.0;
+}
+
+class AppDurations {
+  static const fast = Duration(milliseconds: 150);
+  static const med = Duration(milliseconds: 250);
+  static const slow = Duration(milliseconds: 400);
+}
+
 ThemeData buildAppTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.brand,
@@ -98,7 +113,22 @@ ThemeData buildAppTheme() {
     onSurface: AppColors.textPrimary,
   );
 
-  const baseTextStyle = TextStyle(color: AppColors.textPrimary, height: 1.3);
+  final thaiFont = GoogleFonts.notoSansThaiLooped().fontFamily;
+  final baseTextStyle = TextStyle(color: AppColors.textPrimary, height: 1.55, fontFamily: thaiFont);
+
+  final baseTextTheme = TextTheme(
+    displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary, letterSpacing: -0.5, height: 1.3, fontFamily: thaiFont),
+    displayMedium: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.textPrimary, letterSpacing: -0.3, height: 1.3, fontFamily: thaiFont),
+    headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.4, fontFamily: thaiFont),
+    titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.4, fontFamily: thaiFont),
+    titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.45, fontFamily: thaiFont),
+    titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.45, fontFamily: thaiFont),
+    bodyLarge: TextStyle(fontSize: 15, color: AppColors.textPrimary, height: 1.55, fontFamily: thaiFont),
+    bodyMedium: TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.55, fontFamily: thaiFont),
+    bodySmall: TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.5, fontFamily: thaiFont),
+    labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.4, fontFamily: thaiFont),
+    labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary, height: 1.4, fontFamily: thaiFont),
+  ).apply(bodyColor: AppColors.textPrimary, displayColor: AppColors.textPrimary);
 
   return ThemeData(
     useMaterial3: true,
@@ -106,26 +136,15 @@ ThemeData buildAppTheme() {
     scaffoldBackgroundColor: AppColors.background,
     canvasColor: AppColors.background,
     splashFactory: InkRipple.splashFactory,
+    fontFamily: thaiFont,
 
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.textPrimary, letterSpacing: -0.5),
-      displayMedium: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.textPrimary, letterSpacing: -0.3),
-      headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-      titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-      titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-      titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-      bodyLarge: TextStyle(fontSize: 15, color: AppColors.textPrimary, height: 1.4),
-      bodyMedium: TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.4),
-      bodySmall: TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4),
-      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-      labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
-    ).apply(bodyColor: AppColors.textPrimary, displayColor: AppColors.textPrimary),
+    textTheme: baseTextTheme,
 
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.textPrimary,
       surfaceTintColor: Colors.transparent,
-      shadowColor: Color(0x1A0D264B),
+      shadowColor: const Color(0x1A0D264B),
       elevation: 0,
       scrolledUnderElevation: 2,
       centerTitle: false,
@@ -134,8 +153,9 @@ ThemeData buildAppTheme() {
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
         letterSpacing: -0.2,
+        fontFamily: thaiFont,
       ),
-      iconTheme: IconThemeData(color: AppColors.textPrimary, size: 22),
+      iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 22),
     ),
 
     cardTheme: CardThemeData(
@@ -158,9 +178,9 @@ ThemeData buildAppTheme() {
         shadowColor: AppColors.brand.withValues(alpha: 0.45),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         minimumSize: const Size(0, 48),
-        textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, letterSpacing: 0.1),
+        textStyle: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, letterSpacing: 0.1, fontFamily: thaiFont),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        animationDuration: const Duration(milliseconds: 150),
+        animationDuration: AppDurations.fast,
       ),
     ),
 
@@ -170,7 +190,7 @@ ThemeData buildAppTheme() {
         side: const BorderSide(color: AppColors.border, width: 1.2),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         minimumSize: const Size(0, 48),
-        textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+        textStyle: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, fontFamily: thaiFont),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
@@ -179,7 +199,7 @@ ThemeData buildAppTheme() {
       style: TextButton.styleFrom(
         foregroundColor: AppColors.brand,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: thaiFont),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
@@ -188,9 +208,9 @@ ThemeData buildAppTheme() {
       filled: true,
       fillColor: AppColors.fieldFill,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-      floatingLabelStyle: const TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w500),
+      hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14, fontFamily: thaiFont),
+      labelStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14, fontFamily: thaiFont),
+      floatingLabelStyle: TextStyle(color: AppColors.brand, fontSize: 13, fontWeight: FontWeight.w500, fontFamily: thaiFont),
       prefixIconColor: AppColors.textSecondary,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -214,29 +234,29 @@ ThemeData buildAppTheme() {
       backgroundColor: AppColors.fieldFill,
       selectedColor: AppColors.brand,
       labelStyle: baseTextStyle.copyWith(fontSize: 13, fontWeight: FontWeight.w500),
-      secondaryLabelStyle: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+      secondaryLabelStyle: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600, fontFamily: thaiFont),
       side: BorderSide.none,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       showCheckmark: false,
     ),
 
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
       backgroundColor: AppColors.surface,
       selectedItemColor: AppColors.brand,
       unselectedItemColor: AppColors.textMuted,
-      selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: thaiFont),
+      unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, fontFamily: thaiFont),
       elevation: 8,
       type: BottomNavigationBarType.fixed,
       showUnselectedLabels: true,
     ),
 
-    tabBarTheme: const TabBarThemeData(
+    tabBarTheme: TabBarThemeData(
       labelColor: AppColors.brand,
       unselectedLabelColor: AppColors.textMuted,
-      labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: thaiFont),
+      unselectedLabelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, fontFamily: thaiFont),
       indicatorSize: TabBarIndicatorSize.label,
       indicatorColor: AppColors.brand,
       dividerColor: AppColors.border,
@@ -257,7 +277,7 @@ ThemeData buildAppTheme() {
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.textPrimary,
-      contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+      contentTextStyle: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500, fontFamily: thaiFont),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       actionTextColor: Colors.white,
       insetPadding: const EdgeInsets.all(16),
@@ -268,8 +288,8 @@ ThemeData buildAppTheme() {
       surfaceTintColor: Colors.transparent,
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-      contentTextStyle: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+      titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary, fontFamily: thaiFont),
+      contentTextStyle: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5, fontFamily: thaiFont),
     ),
 
     progressIndicatorTheme: const ProgressIndicatorThemeData(

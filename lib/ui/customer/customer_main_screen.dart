@@ -1,3 +1,4 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
@@ -127,7 +128,19 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
     final user = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: PageTransitionSwitcher(
+        duration: AppDurations.med,
+        transitionBuilder: (child, primary, secondary) => FadeThroughTransition(
+          animation: primary,
+          secondaryAnimation: secondary,
+          fillColor: AppColors.background,
+          child: child,
+        ),
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentIndex),
+          child: _pages[_currentIndex],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.border, width: 1)),
