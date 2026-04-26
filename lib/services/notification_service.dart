@@ -43,7 +43,10 @@ class NotificationService {
   }
 
   static Future<void> _saveToken() async {
-    final token = await _messaging.getToken();
+    final token = await _messaging.getToken().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => null,
+    );
     if (token == null) return;
     await _updateToken(token);
     _messaging.onTokenRefresh.listen(_updateToken);

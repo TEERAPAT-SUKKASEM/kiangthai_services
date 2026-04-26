@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -22,9 +24,15 @@ void main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
-  await NotificationService.initialize();
-
   runApp(const KiangThaiApp());
+
+  // Run notification setup off the critical path so a slow/failing
+  // FCM token fetch can't block the first frame.
+  unawaited(
+    NotificationService.initialize().catchError(
+      (Object e, StackTrace s) => debugPrint('NotificationService failed: $e'),
+    ),
+  );
 }
 
 class KiangThaiApp extends StatelessWidget {
