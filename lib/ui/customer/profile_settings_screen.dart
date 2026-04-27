@@ -17,6 +17,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   List<String> _savedAddresses = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -168,6 +169,52 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   Future<void> _logout() async {
     await Supabase.instance.client.auth.signOut();
     // main.dart's StreamBuilder handles navigation back to LoginScreen
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: const Text(
+          'This permanently deletes your profile, bookings, and chat '
+          'messages. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete Account',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      await Supabase.instance.client.rpc('delete_my_account');
+      await Supabase.instance.client.auth.signOut();
+      // main.dart's StreamBuilder routes back to LoginScreen
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete account: $e')),
+        );
+        setState(() => _isDeleting = false);
+      }
+    }
   }
 
   @override
@@ -328,6 +375,27 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   icon: const Icon(Icons.logout_rounded),
                   label: const Text('Sign Out'),
                   onPressed: _logout,
+                ),
+
+                const SizedBox(height: 10),
+
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: AppColors.rejected,
+                  ),
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: AppColors.rejected,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Icon(Icons.delete_forever_rounded),
+                  label: const Text('Delete Account'),
+                  onPressed: _isDeleting ? null : _confirmDeleteAccount,
                 ),
               ],
             ),

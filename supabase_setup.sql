@@ -294,5 +294,35 @@ CREATE POLICY "booking-images: authenticated users can delete own objects"
 
 
 -- =============================================================================
+-- SECTION 8: Self-service account deletion (Google Play Data Safety)
+-- =============================================================================
+
+-- SECURITY DEFINER lets an authenticated user delete their own data and auth
+-- row in one call without needing client-side service-role access.
+CREATE OR REPLACE FUNCTION public.delete_my_account()
+  RETURNS void
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+BEGIN
+  IF uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  DELETE FROM public.messages WHERE sender_id = uid;
+  DELETE FROM public.bookings WHERE customer_id = uid OR technician_id = uid;
+  DELETE FROM public.profiles WHERE id = uid;
+  DELETE FROM auth.users      WHERE id = uid;
+END;
+$$;
+
+REVOKE ALL    ON FUNCTION public.delete_my_account() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_my_account() TO authenticated;
+
+
+-- =============================================================================
 -- END OF SETUP
 -- =============================================================================
