@@ -195,56 +195,34 @@ class _HeroSectionState extends State<_HeroSection>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      AnimatedBuilder(
-                        animation: _floatController,
-                        builder: (context, child) {
-                          final t = _floatController.value;
-                          return Transform.translate(
-                            offset: Offset(0, -2 * (t - 0.5) * 2),
-                            child: child,
-                          );
-                        },
-                        child: Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.white.withValues(alpha: 0.3),
-                                Colors.white.withValues(alpha: 0.1),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.3),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                  AnimatedBuilder(
+                    animation: _floatController,
+                    builder: (context, child) {
+                      final t = _floatController.value;
+                      return Transform.translate(
+                        offset: Offset(0, -2 * (t - 0.5) * 2),
+                        child: child,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
                           ),
-                          child: const Icon(Icons.ac_unit_rounded, color: Colors.white, size: 28),
-                        ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Kiang Thai',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
-                        ),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        height: 44,
+                        fit: BoxFit.contain,
                       ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 28),
                   _FadeSlideIn(
